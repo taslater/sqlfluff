@@ -2523,9 +2523,11 @@ class CreateFlowStatementSegment(BaseSegment):
                 Dedent,
                 Ref("CDCSpecificationSegment"),
             ),
-            # INSERT [ONCE] INTO [ONCE] target BY NAME [REPLACE USING (...)]
-            # query -- an append flow, which is how a pipeline points several
-            # sources at one streaming table.
+            # INSERT [ONCE] INTO [ONCE] target BY NAME
+            # [REPLACE USING (...) SEQUENCE BY ...] query -- an append flow,
+            # which is how a pipeline points several sources at one streaming
+            # table. The reference binds the list and its SEQUENCE BY column
+            # as one replace_using_spec, so both are required together.
             #
             # The reference page writes `INSERT [ONCE] INTO`, while the flow
             # examples and backfill pages write `INSERT INTO ONCE`. Both
@@ -2574,6 +2576,9 @@ class CreateFlowStatementSegment(BaseSegment):
                     "REPLACE",
                     "USING",
                     Ref("BracketedColumnReferenceListGrammar"),
+                    "SEQUENCE",
+                    "BY",
+                    Ref("ColumnReferenceSegment"),
                     optional=True,
                 ),
                 Ref("SelectableGrammar"),
