@@ -249,4 +249,14 @@ def test_copy_into_rejections(sql: str) -> None:
             id="replace_partitioned_without_cluster_by",
 def test_alter_table_rejections(sql: str) -> None:
     """ALTER TABLE boundaries that a valid-parse fixture cannot express."""
+        pytest.param("CREATE SHARE;", id="share_without_name"),
+        pytest.param("CREATE SHARE COMMENT 'x';", id="share_without_name_with_comment"),
+        pytest.param("CREATE SHARE s COMMENT;", id="share_without_comment_value"),
+        pytest.param("CREATE RECIPIENT USING ID 'x';", id="recipient_without_name"),
+        pytest.param("CREATE RECIPIENT r USING ID;", id="recipient_without_sharing_id"),
+        pytest.param("CREATE RECIPIENT r PROPERTIES ();", id="recipient_empty_properties"),
+        pytest.param("CREATE RECIPIENT r PROPERTIES (k =);", id="recipient_without_property_value"),
+        pytest.param("CREATE RECIPIENT r COMMENT;", id="recipient_without_comment_value"),
+def test_create_share_recipient_rejections(sql: str) -> None:
+    """CREATE SHARE / RECIPIENT boundaries a valid-parse fixture cannot express."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
