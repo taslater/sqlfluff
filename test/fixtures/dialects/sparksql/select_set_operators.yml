@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: 07863ded204d4505e4dd6b2ba697611abebe68ada429d58584bbecc5873a7fff
+_hash: 03ffac8b5bacbffdb0c28b8a8e68e4513d10fb1b418c915e6a1113b152c7b3bb
 file:
 - statement:
     set_expression:
@@ -110,6 +110,41 @@ file:
 - statement_terminator: ;
 - statement:
     set_expression:
+      select_statement:
+        select_clause:
+          keyword: SELECT
+          select_clause_element:
+            column_reference:
+              naked_identifier: c
+        from_clause:
+          keyword: FROM
+          from_expression:
+            from_expression_element:
+              table_expression:
+                table_reference:
+                  naked_identifier: number1
+      set_operator:
+      - keyword: EXCEPT
+      - keyword: DISTINCT
+      bracketed:
+        start_bracket: (
+        select_statement:
+          select_clause:
+            keyword: SELECT
+            select_clause_element:
+              column_reference:
+                naked_identifier: c
+          from_clause:
+            keyword: FROM
+            from_expression:
+              from_expression_element:
+                table_expression:
+                  table_reference:
+                    naked_identifier: number2
+        end_bracket: )
+- statement_terminator: ;
+- statement:
+    set_expression:
     - select_statement:
         select_clause:
           keyword: SELECT
@@ -157,6 +192,41 @@ file:
       set_operator:
       - keyword: MINUS
       - keyword: ALL
+      bracketed:
+        start_bracket: (
+        select_statement:
+          select_clause:
+            keyword: SELECT
+            select_clause_element:
+              column_reference:
+                naked_identifier: c
+          from_clause:
+            keyword: FROM
+            from_expression:
+              from_expression_element:
+                table_expression:
+                  table_reference:
+                    naked_identifier: number2
+        end_bracket: )
+- statement_terminator: ;
+- statement:
+    set_expression:
+      select_statement:
+        select_clause:
+          keyword: SELECT
+          select_clause_element:
+            column_reference:
+              naked_identifier: c
+        from_clause:
+          keyword: FROM
+          from_expression:
+            from_expression_element:
+              table_expression:
+                table_reference:
+                  naked_identifier: number1
+      set_operator:
+      - keyword: MINUS
+      - keyword: DISTINCT
       bracketed:
         start_bracket: (
         select_statement:

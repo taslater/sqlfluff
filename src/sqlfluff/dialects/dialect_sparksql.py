@@ -2260,19 +2260,15 @@ class SetOperatorSegment(ansi.SetOperatorSegment):
     """A set operator such as Union, Minus, Except or Intersect.
 
     Enhanced from ANSI dialect.
-    :: Spark allows the `ALL` keyword to follow Except and Minus.
-    :: Distinct allows the `DISTINCT` and `ALL` keywords.
+    :: Spark allows either the `ALL` or the `DISTINCT` keyword to follow any of
+       Union, Intersect, Except and Minus.
 
     # https://spark.apache.org/docs/latest/sql-ref-syntax-qry-select-setops.html
     """
 
     match_grammar = OneOf(
         Sequence(
-            OneOf("EXCEPT", "MINUS"),
-            Ref.keyword("ALL", optional=True),
-        ),
-        Sequence(
-            OneOf("UNION", "INTERSECT"),
+            OneOf("UNION", "INTERSECT", "EXCEPT", "MINUS"),
             OneOf("DISTINCT", "ALL", optional=True),
         ),
         # Do not take the EXCEPT of a wildcard exclusion
