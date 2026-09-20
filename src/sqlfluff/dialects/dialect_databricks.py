@@ -353,6 +353,12 @@ databricks_dialect.add(
             optional=True,
         ),
     ),
+    # Clause shared across the Unity Catalog DDL statements.
+    DefaultCollationClauseGrammar=Sequence(
+        "DEFAULT",
+        "COLLATION",
+        Ref("SingleIdentifierGrammar"),
+    ),
     NotebookStart=TypedParser("notebook_start", CommentSegment, type="notebook_start"),
     MagicSingleLineGrammar=TypedParser(
         "magic_single_line", CodeSegment, type="magic_single_line"
@@ -384,16 +390,71 @@ databricks_dialect.replace(
     # optional keyword: STREAMING is itself optional, so an independent
     # PRIVATE would also accept `CREATE PRIVATE TABLE`, which is not valid.
     # https://docs.databricks.com/aws/en/ldp/developer/ldp-sql-ref-create-streaming-table
-    TableDefinitionSegment=sparksql_dialect.get_grammar("TableDefinitionSegment").copy(
-        insert=[
-            OneOf(
-                Sequence(Ref.keyword("PRIVATE"), Ref.keyword("STREAMING")),
-                Ref.keyword("STREAMING"),
-                optional=True,
-            )
-        ],
-        before=Ref.keyword("STREAMING", optional=True),
-        remove=[Ref.keyword("STREAMING", optional=True)],
+    # Mirrors the SparkSQL TableDefinitionSegment, with PRIVATE / STREAMING
+    # support and two table clauses Databricks adds: a credential-aware
+    # LOCATION and DEFAULT COLLATION.
+    TableDefinitionSegment=Sequence(
+        OneOf(Ref("OrReplaceGrammar"), Ref("OrRefreshGrammar"), optional=True),
+        Ref("TemporaryGrammar", optional=True),
+        Ref.keyword("EXTERNAL", optional=True),
+        OneOf(
+            Sequence(Ref.keyword("PRIVATE"), Ref.keyword("STREAMING")),
+            Ref.keyword("STREAMING"),
+            optional=True,
+        ),
+        Ref.keyword("LIVE", optional=True),
+        "TABLE",
+        Ref("IfNotExistsGrammar", optional=True),
+        OneOf(
+            Ref("FileReferenceSegment"),
+            Ref("TableReferenceSegment"),
+        ),
+        OneOf(
+            # Columns and comment syntax:
+            Bracketed(
+                Delimited(
+                    Sequence(
+                        OneOf(
+                            Ref("ColumnFieldDefinitionSegment"),
+                            Ref("TableConstraintSegment", optional=True),
+                        ),
+                        Ref("CommentGrammar", optional=True),
+                    ),
+                    Ref("ConstraintStatementSegment", optional=True),
+                ),
+            ),
+            # Like Syntax
+            Sequence(
+                "LIKE",
+                OneOf(
+                    Ref("FileReferenceSegment"),
+                    Ref("TableReferenceSegment"),
+                ),
+            ),
+            optional=True,
+        ),
+        Ref("UsingClauseSegment", optional=True),
+        AnySetOf(
+            Ref("RowFormatClauseSegment"),
+            Ref("StoredAsGrammar"),
+            Ref("CommentGrammar"),
+            Ref("OptionsGrammar"),
+            Ref("PartitionSpecGrammar"),
+            Ref("BucketSpecGrammar"),
+            Ref("LocationGrammar"),
+            Ref("LocationWithCredentialGrammar"),
+            Ref("DefaultCollationClauseGrammar"),
+            Ref("CommentGrammar"),
+            Ref("TablePropertiesGrammar"),
+            Ref("TableClusterByClauseSegment"),
+            optional=True,
+        ),
+        # Create AS syntax:
+        Sequence(
+            Ref.keyword("AS", optional=True),
+            OptionallyBracketed(Ref("SelectableGrammar")),
+            optional=True,
+        ),
     ),
     # https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-aux-describe-volume.html
     DescribeObjectGrammar=sparksql_dialect.get_grammar("DescribeObjectGrammar").copy(

@@ -59,3 +59,21 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param(
+            "CREATE TABLE t (a INT) DEFAULT COLLATION;",
+            id="default_collation_without_name",
+        ),
+        pytest.param(
+            "CREATE TABLE t (a INT) LOCATION 'x' WITH (CREDENTIAL);",
+            id="location_without_credential_name",
+        ),
+    ],
+)
+def test_create_table_clause_rejections(sql: str) -> None:
+    """CREATE TABLE clause boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
