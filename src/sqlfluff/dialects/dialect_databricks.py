@@ -208,7 +208,7 @@ databricks_dialect.add(
                 r"[A-Z_][A-Z0-9_]*",
                 IdentifierSegment,
                 type="naked_identifier",
-                anti_template=r"TABLE|FUNCTION|FOREIGN",
+                anti_template=r"(?:TABLE|FUNCTION|FOREIGN)$",
             ),
         ),
         delimiter=Ref("ObjectReferenceDelimiterGrammar"),
@@ -233,7 +233,7 @@ databricks_dialect.add(
                 r"[A-Z_][A-Z0-9_]*",
                 IdentifierSegment,
                 type="naked_identifier",
-                anti_template=r"CATALOG|CONNECTION|CREDENTIAL|EXTERNAL|FUNCTION|POLICY|PROCEDURE|PROVIDER|SCHEMA|SHARE|VOLUME|QUERY|DATABASE|LOCATION|RECIPIENT",
+                anti_template=r"(?:CATALOG|CONNECTION|CREDENTIAL|EXTERNAL|FUNCTION|POLICY|PROCEDURE|PROVIDER|SCHEMA|SHARE|VOLUME|QUERY|DATABASE|LOCATION|RECIPIENT)$",
             ),
         ),
         delimiter=Ref("ObjectReferenceDelimiterGrammar"),
@@ -460,17 +460,42 @@ databricks_dialect.replace(
     # support and two table clauses Databricks adds: a credential-aware
     # LOCATION and DEFAULT COLLATION.
     TableDefinitionSegment=Sequence(
-        OneOf(Ref("OrReplaceGrammar"), Ref("OrRefreshGrammar"), optional=True),
-        Ref("TemporaryGrammar", optional=True),
-        Ref.keyword("EXTERNAL", optional=True),
         OneOf(
-            Sequence(Ref.keyword("PRIVATE"), Ref.keyword("STREAMING")),
-            Ref.keyword("STREAMING"),
-            optional=True,
+            # [CREATE OR] REPLACE [TEMP] TABLE  (no IF NOT EXISTS)
+            Sequence(
+                OneOf(Ref("OrReplaceGrammar"), Ref("OrRefreshGrammar")),
+                Ref("TemporaryGrammar", optional=True),
+                OneOf(
+                    Sequence(Ref.keyword("PRIVATE"), Ref.keyword("STREAMING")),
+                    Ref.keyword("STREAMING"),
+                    optional=True,
+                ),
+                Ref.keyword("LIVE", optional=True),
+                "TABLE",
+            ),
+            # CREATE [EXTERNAL] TABLE [IF NOT EXISTS]  (incl. streaming)
+            Sequence(
+                Ref.keyword("EXTERNAL", optional=True),
+                OneOf(
+                    Sequence(Ref.keyword("PRIVATE"), Ref.keyword("STREAMING")),
+                    Ref.keyword("STREAMING"),
+                    optional=True,
+                ),
+                Ref.keyword("LIVE", optional=True),
+                "TABLE",
+                Ref("IfNotExistsGrammar", optional=True),
+            ),
+            # CREATE {TEMP | TEMPORARY} TABLE
+            Sequence(
+                Ref("TemporaryGrammar"),
+                OneOf(
+                    Sequence(Ref.keyword("PRIVATE"), Ref.keyword("STREAMING")),
+                    Ref.keyword("STREAMING"),
+                    optional=True,
+                ),
+                "TABLE",
+            ),
         ),
-        Ref.keyword("LIVE", optional=True),
-        "TABLE",
-        Ref("IfNotExistsGrammar", optional=True),
         OneOf(
             Ref("FileReferenceSegment"),
             Ref("TableReferenceSegment"),
@@ -478,13 +503,19 @@ databricks_dialect.replace(
         OneOf(
             # Columns and comment syntax:
             Bracketed(
-                Delimited(
-                    Sequence(
-                        OneOf(
-                            Ref("ColumnFieldDefinitionSegment"),
-                            Ref("TableConstraintSegment", optional=True),
+                Sequence(
+                    # The first entry must be a column, not a constraint.
+                    Ref("ColumnFieldDefinitionSegment"),
+                    Ref("CommentGrammar", optional=True),
+                    AnyNumberOf(
+                        Sequence(
+                            Ref("CommaSegment"),
+                            OneOf(
+                                Ref("ColumnFieldDefinitionSegment"),
+                                Ref("TableConstraintSegment"),
+                            ),
+                            Ref("CommentGrammar", optional=True),
                         ),
-                        Ref("CommentGrammar", optional=True),
                     ),
                     Ref("ConstraintStatementSegment", optional=True),
                 ),
@@ -618,7 +649,7 @@ databricks_dialect.replace(
     # RECIPIENT is a clause keyword on `SET RECIPIENT`, so it cannot also be a
     # runtime property name (which would accept the name-less form).
     PropertiesNakedIdentifierSegment=RegexParser(
-        r"(?!RECIPIENT)[A-Z_][A-Z0-9_]*",
+        r"(?!RECIPIENT$)[A-Z_][A-Z0-9_]*",
         IdentifierSegment,
         type="properties_naked_identifier",
     ),
@@ -1316,10 +1347,30 @@ class UseDatabaseStatementSegment(sparksql.UseDatabaseStatementSegment):
     """
 
     type = "use_database_statement"
+
+    _name = Delimited(
+        OneOf(
+            Ref("BackQuotedIdentifierSegment"),
+            Ref("IdentifierClauseSegment"),
+            RegexParser(
+                r"[A-Z_][A-Z0-9_]*",
+                IdentifierSegment,
+                type="naked_identifier",
+                anti_template=r"(?:SCHEMA|DATABASE)$",
+            ),
+        ),
+        delimiter=Ref("ObjectReferenceDelimiterGrammar"),
+    )
+
     match_grammar = Sequence(
         "USE",
-        OneOf("DATABASE", "SCHEMA", optional=True),
-        Ref("DatabaseReferenceSegment"),
+        OneOf(
+            Sequence(
+                OneOf("DATABASE", "SCHEMA"),
+                _name,
+            ),
+            _name,
+        ),
     )
 
 
@@ -2318,6 +2369,61 @@ class OptimizeTableStatementSegment(BaseSegment):
             optional=True,
         ),
     )
+
+
+class OrderByClauseSegment(ansi.OrderByClauseSegment):
+    """An `ORDER BY` clause, with the `ORDER BY ALL` form.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-orderby
+    """
+
+    match_grammar = Sequence(
+        "ORDER",
+        "BY",
+        OneOf(
+            Sequence(
+                "ALL",
+                OneOf("ASC", "DESC", optional=True),
+                Sequence("NULLS", OneOf("FIRST", "LAST"), optional=True),
+            ),
+            Delimited(
+                Sequence(
+                    OneOf(
+                        Ref("ColumnReferenceSegment"),
+                        Ref("NumericLiteralSegment"),
+                        Ref("ExpressionSegment"),
+                    ),
+                    OneOf("ASC", "DESC", optional=True),
+                    Sequence("NULLS", OneOf("FIRST", "LAST"), optional=True),
+                    Ref("WithFillSegment", optional=True),
+                ),
+                terminators=[
+                    Ref("LimitClauseSegment"),
+                    Ref("FrameClauseUnitGrammar"),
+                ],
+            ),
+        ),
+    )
+
+
+class UseStatementSegment(ansi.UseStatementSegment):
+    """A `USE` statement, guarded so a bare `USE SCHEMA` is rejected."""
+
+    _name = Delimited(
+        OneOf(
+            Ref("BackQuotedIdentifierSegment"),
+            Ref("IdentifierClauseSegment"),
+            RegexParser(
+                r"[A-Z_][A-Z0-9_]*",
+                IdentifierSegment,
+                type="naked_identifier",
+                anti_template=r"(?:SCHEMA|DATABASE)$",
+            ),
+        ),
+        delimiter=Ref("ObjectReferenceDelimiterGrammar"),
+    )
+
+    match_grammar = Sequence("USE", _name)
 
 
 class OffsetClauseSegment(ansi.OffsetClauseSegment):

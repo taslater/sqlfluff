@@ -752,3 +752,26 @@ def test_policy_procedure_table_flow_rejections(sql: str) -> None:
 def test_query_surface_rejections(sql: str) -> None:
     """Query-surface boundaries: OFFSET, sampling, MATCH_RECOGNIZE, pipeline."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("SELECT ALL DISTINCT a FROM t;", id="select_all_and_distinct"),
+        pytest.param("SELECT a FROM t GROUP BY ALL, a;", id="group_by_all_and_list"),
+        pytest.param("SELECT * FROM t ORDER BY ALL, a;", id="order_by_all_and_list"),
+        pytest.param("USE SCHEMA;", id="use_schema_without_name"),
+        pytest.param("CREATE TEMP EXTERNAL TABLE t (a INT);", id="create_table_temp_external"),
+        pytest.param(
+            "CREATE OR REPLACE TEMP TABLE IF NOT EXISTS t (a INT);",
+            id="create_table_replace_and_if_not_exists",
+        ),
+        pytest.param(
+            "CREATE TABLE t (CONSTRAINT pk PRIMARY KEY (a));",
+            id="create_table_constraint_without_column",
+        ),
+    ],
+)
+def test_rejection_hardening(sql: str) -> None:
+    """Over-acceptances tightened to the reference."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

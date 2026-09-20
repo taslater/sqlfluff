@@ -3,75 +3,67 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: 4394b95f2d290f61d1d3879f63fd43e04ba9a5e394063525bdf9c8990275975c
+_hash: 6c2d9fba3c1f8b8c4df9c04fa95b408b4f3163a66bc3b48e15cd2477bfbd9e05
 file:
 - statement:
     use_statement:
       keyword: USE
-      database_reference:
-        naked_identifier: database_name
+      naked_identifier: database_name
 - statement_terminator: ;
 - statement:
     use_statement:
       keyword: USE
-      database_reference:
-        naked_identifier: userdb
+      naked_identifier: userdb
 - statement_terminator: ;
 - statement:
     use_statement:
       keyword: USE
-      database_reference:
-        naked_identifier: userdb1
+      naked_identifier: userdb1
 - statement_terminator: ;
 - statement:
     use_database_statement:
     - keyword: USE
     - keyword: DATABASE
-    - database_reference:
-        naked_identifier: database_name
+    - naked_identifier: database_name
 - statement_terminator: ;
 - statement:
     use_database_statement:
     - keyword: USE
     - keyword: SCHEMA
-    - database_reference:
-        naked_identifier: database_name
+    - naked_identifier: database_name
 - statement_terminator: ;
 - statement:
     use_statement:
       keyword: USE
-      database_reference:
-        identifier_clause_segment:
-          keyword: IDENTIFIER
-          bracketed:
-            start_bracket: (
-            expression:
-              quoted_literal: "'database_name'"
-            end_bracket: )
+      identifier_clause_segment:
+        keyword: IDENTIFIER
+        bracketed:
+          start_bracket: (
+          expression:
+            quoted_literal: "'database_name'"
+          end_bracket: )
 - statement_terminator: ;
 - statement:
     use_database_statement:
     - keyword: USE
     - keyword: DATABASE
-    - database_reference:
-        identifier_clause_segment:
-          keyword: IDENTIFIER
-          bracketed:
-            start_bracket: (
-            expression:
-              quoted_literal: "'database_name'"
-            end_bracket: )
+    - identifier_clause_segment:
+        keyword: IDENTIFIER
+        bracketed:
+          start_bracket: (
+          expression:
+            quoted_literal: "'database_name'"
+          end_bracket: )
 - statement_terminator: ;
 - statement:
     use_database_statement:
     - keyword: USE
     - keyword: SCHEMA
-    - database_reference:
-        identifier_clause_segment:
-          keyword: IDENTIFIER
-          bracketed:
-            start_bracket: (
-            expression:
-              quoted_literal: "'database_name'"
-            end_bracket: )
+    - identifier_clause_segment:
+        keyword: IDENTIFIER
+        bracketed:
+          start_bracket: (
+          expression:
+            quoted_literal: "'database_name'"
+          end_bracket: )
 - statement_terminator: ;

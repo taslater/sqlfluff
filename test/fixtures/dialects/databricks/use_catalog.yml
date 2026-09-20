@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: efba9cf83169ff05ca7a02b255bfd3348215f91649888a261c371db4fa5f9949
+_hash: d0d6759b24d49681df582b1dba043a10107e3fc678e39deae9f9525fe748dcb1
 file:
 - statement:
     use_catalog_statement:
@@ -71,6 +71,5 @@ file:
 - statement:
     use_statement:
       keyword: USE
-      database_reference:
-        naked_identifier: CATALOG
+      naked_identifier: CATALOG
 - statement_terminator: ;

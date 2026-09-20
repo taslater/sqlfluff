@@ -4,6 +4,9 @@ https://docs.databricks.com/sql/language-manual/sql-ref-reserved-words.html
 """
 
 RESERVED_KEYWORDS = [
+    "IDENTIFIER",
+    "ALL",
+    "DISTINCT",
     "OFFSET",
     "MATCH_RECOGNIZE",
     "WITH",
@@ -152,7 +155,6 @@ UNRESERVED_KEYWORDS = [
     "HOUR",
     "HOURS",
     "ID",
-    "IDENTIFIER",
     "LITE",
     "JAVA",
     "MANAGED",
