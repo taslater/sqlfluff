@@ -350,4 +350,8 @@ def test_alter_connection_location_credential_rejections(sql: str) -> None:
         pytest.param("ALTER STREAMING TABLE t SET OWNER TO;", id="streaming_table_owner_without_value"),
 def test_alter_materialized_view_streaming_table_rejections(sql: str) -> None:
     """ALTER MATERIALIZED VIEW / STREAMING TABLE boundaries."""
+        pytest.param("ALTER GROUP ADD GROUP h;", id="group_without_principal"),
+        pytest.param("ALTER GROUP g ADD;", id="group_add_without_members"),
+def test_alter_group_rejections(sql: str) -> None:
+    """ALTER GROUP boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
