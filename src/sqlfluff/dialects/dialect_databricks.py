@@ -196,6 +196,20 @@ databricks_dialect.add(
         ),
         delimiter=Ref("ObjectReferenceDelimiterGrammar"),
     ),
+    # A table reference for DESCRIBE, which must not swallow the object
+    # keywords (each of which also heads its own DESCRIBE form).
+    DescribeTableReferenceSegment=Delimited(
+        OneOf(
+            Ref("BackQuotedIdentifierSegment"),
+            RegexParser(
+                r"[A-Z_][A-Z0-9_]*",
+                IdentifierSegment,
+                type="naked_identifier",
+                anti_template=r"CATALOG|CONNECTION|CREDENTIAL|EXTERNAL|FUNCTION|POLICY|PROCEDURE|PROVIDER|SCHEMA|SHARE|VOLUME|QUERY|DATABASE|LOCATION|RECIPIENT",
+            ),
+        ),
+        delimiter=Ref("ObjectReferenceDelimiterGrammar"),
+    ),
     RetainDroppedClauseGrammar=Sequence(
         Ref.keyword("SET", optional=True),
         "RETAIN",
@@ -481,14 +495,87 @@ databricks_dialect.replace(
         ),
     ),
     # https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-aux-describe-volume.html
-    DescribeObjectGrammar=sparksql_dialect.get_grammar("DescribeObjectGrammar").copy(
-        insert=[
+    DescribeObjectGrammar=OneOf(
+        Sequence(
+            OneOf("DATABASE", "SCHEMA"),
+            Ref.keyword("EXTENDED", optional=True),
+            Ref("DatabaseReferenceSegment"),
+        ),
+        Sequence(
+            "FUNCTION",
+            Ref.keyword("EXTENDED", optional=True),
+            Ref("FunctionNameSegment"),
+        ),
+        Sequence(
+            Ref.keyword("TABLE", optional=True),
+            Ref.keyword("EXTENDED", optional=True),
+            Ref("DescribeTableReferenceSegment"),
+            Ref("PartitionSpecGrammar", optional=True),
             Sequence(
-                "VOLUME",
-                Ref("VolumeReferenceSegment"),
+                Ref("SingleIdentifierGrammar"),
+                AnyNumberOf(
+                    Sequence(
+                        Ref("DotSegment"),
+                        Ref("SingleIdentifierGrammar"),
+                        allow_gaps=False,
+                    ),
+                    max_times=2,
+                    allow_gaps=False,
+                ),
+                optional=True,
+                allow_gaps=False,
             ),
-        ],
-        at=0,
+        ),
+        Sequence(
+            Ref.keyword("QUERY", optional=True),
+            OneOf(
+                Sequence("TABLE", Ref("DescribeTableReferenceSegment")),
+                Sequence(
+                    "FROM",
+                    Ref("DescribeTableReferenceSegment"),
+                    "SELECT",
+                    Delimited(Ref("ColumnReferenceSegment")),
+                    Ref("WhereClauseSegment", optional=True),
+                    Ref("GroupByClauseSegment", optional=True),
+                    Ref("OrderByClauseSegment", optional=True),
+                    Ref("LimitClauseSegment", optional=True),
+                ),
+                Ref("StatementSegment"),
+            ),
+        ),
+        Sequence(
+            "CATALOG",
+            Ref.keyword("EXTENDED", optional=True),
+            Ref("CatalogReferenceSegment"),
+        ),
+        Sequence("CONNECTION", Ref("ObjectReferenceSegment")),
+        Sequence(
+            Ref.keyword("STORAGE", optional=True),
+            Ref.keyword("SERVICE", optional=True),
+            "CREDENTIAL",
+            Ref("ObjectReferenceSegment"),
+        ),
+        Sequence("EXTERNAL", "LOCATION", Ref("ObjectReferenceSegment")),
+        Sequence(
+            "POLICY",
+            Ref("ObjectReferenceSegment"),
+            "ON",
+            OneOf(
+                "METASTORE",
+                Sequence(Ref.keyword("CATALOG"), Ref("CatalogReferenceSegment")),
+                Sequence(Ref.keyword("SCHEMA"), Ref("DatabaseReferenceSegment")),
+                Sequence(Ref.keyword("TABLE"), Ref("TableReferenceSegment")),
+            ),
+        ),
+        Sequence(
+            "PROCEDURE",
+            Ref.keyword("EXTENDED", optional=True),
+            Ref("ObjectReferenceSegment"),
+        ),
+        Sequence("PROVIDER", Ref("ObjectReferenceSegment")),
+        Sequence("RECIPIENT", Ref("ObjectReferenceSegment")),
+        Sequence("SHARE", Ref("ObjectReferenceSegment")),
+        Sequence("VOLUME", Ref("VolumeReferenceSegment")),
     ),
     # Add ParameterizedSegment to the LiteralGrammar to support named parameters
     LiteralGrammar=sparksql_dialect.get_grammar("LiteralGrammar").copy(
@@ -596,6 +683,67 @@ databricks_dialect.replace(
     # https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-aux-show-volumes.html
     ShowObjectGrammar=sparksql_dialect.get_grammar("ShowObjectGrammar").copy(
         insert=[
+            Sequence("CATALOGS", Sequence(Ref.keyword("LIKE", optional=True), Ref("QuotedLiteralSegment"), optional=True)),
+            Sequence("CONNECTIONS"),
+            Sequence(
+                Ref.keyword("STORAGE", optional=True),
+                Ref.keyword("SERVICE", optional=True),
+                "CREDENTIALS",
+            ),
+            Sequence("EXTERNAL", "LOCATIONS"),
+            Sequence(
+                "GROUPS",
+                OneOf(
+                    Sequence("WITH", "USER", Ref("ObjectReferenceSegment")),
+                    Sequence("WITH", "GROUP", Ref("ObjectReferenceSegment")),
+                    optional=True,
+                ),
+                Sequence(Ref.keyword("LIKE", optional=True), Ref("QuotedLiteralSegment"), optional=True),
+            ),
+            Sequence("EFFECTIVE", "POLICIES", "ON", OneOf("METASTORE", Sequence(Ref.keyword("CATALOG"), Ref("CatalogReferenceSegment")), Sequence(Ref.keyword("SCHEMA"), Ref("DatabaseReferenceSegment")), Sequence(Ref.keyword("TABLE"), Ref("TableReferenceSegment")))),
+            Sequence("POLICIES", "ON", OneOf("METASTORE", Sequence(Ref.keyword("CATALOG"), Ref("CatalogReferenceSegment")), Sequence(Ref.keyword("SCHEMA"), Ref("DatabaseReferenceSegment")), Sequence(Ref.keyword("TABLE"), Ref("TableReferenceSegment")))),
+            Sequence(
+                "PROCEDURES",
+                Sequence(
+                    OneOf("FROM", "IN"),
+                    Ref("DatabaseReferenceSegment"),
+                    optional=True,
+                ),
+            ),
+            Sequence("PROVIDERS", Sequence(Ref.keyword("LIKE", optional=True), Ref("QuotedLiteralSegment"), optional=True)),
+            Sequence("RECIPIENTS", Sequence(Ref.keyword("LIKE", optional=True), Ref("QuotedLiteralSegment"), optional=True)),
+            Sequence(
+                "SHARES",
+                "IN",
+                "PROVIDER",
+                Ref("ObjectReferenceSegment"),
+                Sequence(Ref.keyword("LIKE", optional=True), Ref("QuotedLiteralSegment"), optional=True),
+            ),
+            Sequence("SHARES", Sequence(Ref.keyword("LIKE", optional=True), Ref("QuotedLiteralSegment"), optional=True)),
+            Sequence(
+                "TABLES",
+                "DROPPED",
+                Sequence(
+                    OneOf("FROM", "IN"),
+                    Ref("DatabaseReferenceSegment"),
+                    optional=True,
+                ),
+                Sequence("LIMIT", Ref("NumericLiteralSegment"), optional=True),
+            ),
+            Sequence("USERS", Sequence(Ref.keyword("LIKE", optional=True), Ref("QuotedLiteralSegment"), optional=True)),
+            Sequence("ALL", "IN", "SHARE", Ref("ObjectReferenceSegment")),
+            Sequence(
+                "COLUMNS",
+                OneOf("IN", "FROM"),
+                Ref("TableReferenceSegment"),
+                Sequence(
+                    OneOf("IN", "FROM"),
+                    Ref("DatabaseReferenceSegment"),
+                    optional=True,
+                ),
+            ),
+            Sequence("GRANTS", "ON", "SHARE", Ref("ObjectReferenceSegment")),
+            Sequence("GRANTS", "TO", "RECIPIENT", Ref("ObjectReferenceSegment")),
             Sequence(
                 "VOLUMES",
                 Sequence(
@@ -835,6 +983,10 @@ class AccessObjectSegment(ansi.AccessObjectSegment):
                 Ref.keyword("CREDENTIAL"),
                 Ref("ObjectReferenceSegment"),
             ),
+            Sequence(
+                Ref.keyword("ANY"),
+                Ref.keyword("FILE"),
+            ),
         ],
     )
 
@@ -949,6 +1101,7 @@ class AccessPermissionSegment(ansi.AccessPermissionSegment):
                 OneOf("READ", "WRITE"),
                 "VOLUME",
             ),
+            Sequence("READ", "FILES"),
         ],
     )
 
@@ -3403,12 +3556,130 @@ class AnalyzeStorageMetricsStatementSegment(BaseSegment):
     )
 
 
+class CreateGroupStatementSegment(BaseSegment):
+    """A `CREATE GROUP` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/security-create-group
+    """
+
+    type = "create_group_statement"
+    match_grammar = Sequence(
+        "CREATE",
+        "GROUP",
+        Ref("ObjectReferenceSegment"),
+        Sequence(
+            Ref.keyword("WITH", optional=True),
+            AnyNumberOf(
+                OneOf(
+                    Sequence("USER", Delimited(Ref("ObjectReferenceSegment"))),
+                    Sequence("GROUP", Delimited(Ref("ObjectReferenceSegment"))),
+                ),
+                min_times=1,
+            ),
+            optional=True,
+        ),
+    )
+
+
+class DropGroupStatementSegment(BaseSegment):
+    """A `DROP GROUP` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/security-drop-group
+    """
+
+    type = "drop_group_statement"
+    match_grammar = Sequence("DROP", "GROUP", Ref("ObjectReferenceSegment"))
+
+
+class DenyStatementSegment(BaseSegment):
+    """A `DENY` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/security-deny
+    """
+
+    type = "deny_statement"
+    match_grammar = Sequence(
+        "DENY",
+        Ref("AccessPermissionsSegment"),
+        "ON",
+        Ref("AccessObjectSegment"),
+        "TO",
+        Ref("AccessTargetSegment"),
+    )
+
+
+class GrantOnShareStatementSegment(BaseSegment):
+    """A `GRANT ... ON SHARE ... TO RECIPIENT` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/security-grant-share
+    """
+
+    type = "grant_on_share_statement"
+    match_grammar = Sequence(
+        "GRANT",
+        Ref("AccessPermissionsSegment"),
+        "ON",
+        "SHARE",
+        Ref("ObjectReferenceSegment"),
+        "TO",
+        "RECIPIENT",
+        Ref("ObjectReferenceSegment"),
+    )
+
+
+class RevokeOnShareStatementSegment(BaseSegment):
+    """A `REVOKE ... ON SHARE ... FROM RECIPIENT` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/security-revoke-share
+    """
+
+    type = "revoke_on_share_statement"
+    match_grammar = Sequence(
+        "REVOKE",
+        Ref("AccessPermissionsSegment"),
+        "ON",
+        "SHARE",
+        Ref("ObjectReferenceSegment"),
+        "FROM",
+        "RECIPIENT",
+        Ref("ObjectReferenceSegment"),
+    )
+
+
+class MsckRepairPrivilegesStatementSegment(BaseSegment):
+    """An `MSCK REPAIR ... PRIVILEGES` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/security-msck-repair-privileges
+    """
+
+    type = "msck_repair_privileges_statement"
+    match_grammar = Sequence(
+        "MSCK",
+        "REPAIR",
+        OneOf(
+            Sequence(OneOf("SCHEMA", "DATABASE"), Ref("DatabaseReferenceSegment")),
+            Sequence("FUNCTION", Ref("FunctionNameSegment")),
+            Sequence(Ref.keyword("TABLE", optional=True), Ref("TableReferenceSegment")),
+            Sequence("VIEW", Ref("TableReferenceSegment")),
+            Sequence("ANONYMOUS", "FUNCTION"),
+            Sequence("ANY", "FILE"),
+        ),
+        "PRIVILEGES",
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
     match_grammar = sparksql.StatementSegment.match_grammar.copy(
         # Segments defined in Databricks SQL dialect
         insert=[
+            Ref("CreateGroupStatementSegment"),
+            Ref("DropGroupStatementSegment"),
+            Ref("DenyStatementSegment"),
+            Ref("GrantOnShareStatementSegment"),
+            Ref("RevokeOnShareStatementSegment"),
+            Ref("MsckRepairPrivilegesStatementSegment"),
             Ref("FsckRepairTableStatementSegment"),
             Ref("ReorgTableStatementSegment"),
             Ref("CacheSelectStatementSegment"),
