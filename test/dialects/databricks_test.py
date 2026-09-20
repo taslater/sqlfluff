@@ -329,4 +329,9 @@ def test_alter_catalog_schema_rejections(sql: str) -> None:
         pytest.param("CREATE SCHEMA s WITH DBPROPERTIES (k =);", id="dbproperties_without_value"),
 def test_create_schema_rejections(sql: str) -> None:
     """CREATE SCHEMA clause boundaries."""
+        pytest.param("ALTER SHARE s ADD TABLE;", id="share_add_table_without_name"),
+        pytest.param("ALTER SHARE s ADD;", id="share_add_without_object"),
+        pytest.param("ALTER SHARE s RENAME TO;", id="share_rename_without_value"),
+def test_alter_share_rejections(sql: str) -> None:
+    """ALTER SHARE clause boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
