@@ -1675,6 +1675,68 @@ class MergeInsertClauseSegment(sparksql.MergeInsertClauseSegment):
     )
 
 
+class CreateConnectionStatementSegment(BaseSegment):
+    """A `CREATE CONNECTION` (or `CREATE SERVER`) statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-connection
+    """
+
+    type = "create_connection_statement"
+
+    # OPTIONS ( { option_key option_value } [, ...] ). An option key may be a
+    # dotted identifier or a string literal, and a value is a literal or a
+    # `secret(scope, key)` reference.
+    _options = Bracketed(
+        Delimited(
+            Sequence(
+                OneOf(Ref("ObjectReferenceSegment"), Ref("QuotedLiteralSegment")),
+                OneOf(Ref("QuotedLiteralSegment"), Ref("FunctionSegment")),
+            )
+        )
+    )
+
+    match_grammar = Sequence(
+        "CREATE",
+        # SERVER is the standards-compliance synonym.
+        OneOf("CONNECTION", "SERVER"),
+        Ref("IfNotExistsGrammar", optional=True),
+        Ref("SingleIdentifierGrammar"),
+        "TYPE",
+        Ref("SingleIdentifierGrammar"),
+        "OPTIONS",
+        _options,
+        Ref("CommentGrammar", optional=True),
+    )
+
+
+class CreateExternalLocationStatementSegment(BaseSegment):
+    """A `CREATE EXTERNAL LOCATION` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-location
+    """
+
+    type = "create_external_location_statement"
+
+    match_grammar = Sequence(
+        "CREATE",
+        "EXTERNAL",
+        "LOCATION",
+        Ref("IfNotExistsGrammar", optional=True),
+        Ref("SingleIdentifierGrammar"),
+        "URL",
+        Ref("QuotedLiteralSegment"),
+        Sequence(
+            "WITH",
+            Bracketed(
+                "STORAGE",
+                "CREDENTIAL",
+                Ref("ObjectReferenceSegment"),
+            ),
+        ),
+        Ref("CommentGrammar", optional=True),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
@@ -1684,6 +1746,8 @@ class StatementSegment(sparksql.StatementSegment):
             # Unity Catalog
             Ref("AlterCatalogStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
+            Ref("CreateConnectionStatementSegment"),
+            Ref("CreateExternalLocationStatementSegment"),
             Ref("DropCatalogStatementSegment"),
             Ref("UseCatalogStatementSegment"),
             Ref("AlterVolumeStatementSegment"),
