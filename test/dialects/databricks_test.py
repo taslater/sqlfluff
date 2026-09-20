@@ -614,3 +614,18 @@ def test_alter_materialized_view_streaming_table_rejections(sql: str) -> None:
 def test_alter_group_rejections(sql: str) -> None:
     """ALTER GROUP boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("BEGIN ATOMIC END;", id="block_without_body"),
+        pytest.param("BEGIN IF 1 < 2 THEN END IF; END", id="if_without_body"),
+        pytest.param("BEGIN WHILE num < 10 SET num = num + 1; END WHILE; END", id="while_without_do"),
+        pytest.param("BEGIN LOOP LEAVE; END LOOP; END", id="leave_without_label"),
+        pytest.param("BEGIN GET DIAGNOSTICS rc = ; END", id="diagnostics_without_item"),
+    ],
+)
+def test_scripting_rejections(sql: str) -> None:
+    """SQL scripting boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
