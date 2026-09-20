@@ -862,24 +862,85 @@ class AlterCatalogStatementSegment(BaseSegment):
 class CreateCatalogStatementSegment(BaseSegment):
     """A `CREATE CATALOG` statement.
 
-    https://docs.databricks.com/sql/language-manual/sql-ref-syntax-ddl-create-catalog.html
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-catalog
     """
 
     type = "create_catalog_statement"
+
+    # OPTIONS ( { option_name = option_value } [ , ... ] ). At least one
+    # option is required, and each needs both its name and a value.
+    _catalog_options = Sequence(
+        "OPTIONS",
+        Bracketed(
+            Delimited(
+                Sequence(
+                    Ref("SingleIdentifierGrammar"),
+                    Ref("EqualsSegment"),
+                    Ref("QuotedLiteralSegment"),
+                )
+            )
+        ),
+    )
+
+    # The reference brackets each clause and follows the list with `[...]`,
+    # so clauses may repeat and appear in any order.
+    _catalog_clause = OneOf(
+        # USING SHARE provider_name . share_name. The dot is part of the
+        # production: a lone name is not a share.
+        Sequence(
+            "USING",
+            "SHARE",
+            Delimited(
+                Ref("SingleIdentifierGrammar"),
+                delimiter=Ref("DotSegment"),
+                min_delimiters=1,
+            ),
+        ),
+        Sequence(
+            "MANAGED",
+            "LOCATION",
+            Ref("QuotedLiteralSegment"),
+        ),
+        # RETAIN DROPPED FOR number { HOUR | HOURS | DAY | DAYS | WEEK | WEEKS }
+        Sequence(
+            "RETAIN",
+            "DROPPED",
+            "FOR",
+            Ref("NumericLiteralSegment"),
+            OneOf("HOUR", "HOURS", "DAY", "DAYS", "WEEK", "WEEKS"),
+        ),
+        Ref("CommentGrammar"),
+        Sequence(
+            "DEFAULT",
+            "COLLATION",
+            Ref("SingleIdentifierGrammar"),
+        ),
+        _catalog_options,
+    )
+
     match_grammar = Sequence(
         "CREATE",
-        "CATALOG",
-        Ref("IfNotExistsGrammar", optional=True),
-        Ref("CatalogReferenceSegment"),
-        # The reference gives these as a bracketed alternation followed by
-        # `[...]`, so they may appear in either order.
-        AnySetOf(
+        OneOf(
+            # The plain catalog: a name and any number of the clauses above.
             Sequence(
-                "MANAGED",
-                "LOCATION",
-                Ref("QuotedLiteralSegment"),
+                "CATALOG",
+                Ref("IfNotExistsGrammar", optional=True),
+                Ref("CatalogReferenceSegment"),
+                AnyNumberOf(_catalog_clause),
             ),
-            Ref("CommentGrammar"),
+            # The foreign catalog: USING CONNECTION and OPTIONS are both
+            # required; only COMMENT is optional between them.
+            Sequence(
+                "FOREIGN",
+                "CATALOG",
+                Ref("IfNotExistsGrammar", optional=True),
+                Ref("CatalogReferenceSegment"),
+                "USING",
+                "CONNECTION",
+                Ref("ObjectReferenceSegment"),
+                Ref("CommentGrammar", optional=True),
+                _catalog_options,
+            ),
         ),
     )
 

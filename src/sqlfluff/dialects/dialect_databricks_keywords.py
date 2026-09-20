@@ -33,6 +33,7 @@ UNRESERVED_KEYWORDS = [
     "CRON",
     "DAY",
     "DEEP",
+    "DROPPED",
     "DAYS",
     "ENFORCED",
     "EVOLUTION",
