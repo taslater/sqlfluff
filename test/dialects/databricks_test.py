@@ -275,4 +275,19 @@ def test_create_share_recipient_rejections(sql: str) -> None:
         pytest.param("CREATE EXTERNAL LOCATION l URL 'u' WITH (STORAGE CREDENTIAL c) COMMENT;", id="location_without_comment_value"),
 def test_create_connection_location_rejections(sql: str) -> None:
     """CREATE CONNECTION / EXTERNAL LOCATION boundaries."""
+            "CREATE FUNCTION f() RETURNS INT CONTAINS SQL READS SQL DATA RETURN 1;",
+            id="contains_sql_and_reads_sql_data",
+            "CREATE FUNCTION f() RETURNS INT RETURN 1 AS $$ return 1 $$;",
+            id="body_return_and_as",
+            "CREATE FUNCTION f() RETURNS INT LANGUAGE RETURN 1;",
+            id="language_without_name",
+            "CREATE FUNCTION f() RETURNS INT DEFAULT COLLATION RETURN 1;",
+            "CREATE FUNCTION f() RETURNS INT LANGUAGE PYTHON ENVIRONMENT () AS $$ return 1 $$;",
+            id="empty_environment",
+            "CREATE FUNCTION f() RETURNS INT LANGUAGE PYTHON ENVIRONMENT (dependencies =) AS $$ return 1 $$;",
+            id="environment_without_value",
+            "CREATE FUNCTION f() RETURNS INT;",
+            id="without_body",
+def test_create_function_characteristic_rejections(sql: str) -> None:
+    """CREATE FUNCTION characteristic boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
