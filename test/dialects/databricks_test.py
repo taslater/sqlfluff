@@ -59,3 +59,17 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("ALTER CONNECTION c RENAME TO;", id="connection_rename_without_value"),
+        pytest.param("ALTER CONNECTION c OPTIONS ();", id="connection_empty_options"),
+        pytest.param("ALTER EXTERNAL LOCATION l SET URL;", id="location_set_url_without_value"),
+        pytest.param("ALTER CREDENTIAL c RENAME TO;", id="credential_rename_without_value"),
+    ],
+)
+def test_alter_connection_location_credential_rejections(sql: str) -> None:
+    """ALTER CONNECTION / EXTERNAL LOCATION / CREDENTIAL boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

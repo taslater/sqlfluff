@@ -1675,6 +1675,95 @@ class MergeInsertClauseSegment(sparksql.MergeInsertClauseSegment):
     )
 
 
+class AlterConnectionStatementSegment(BaseSegment):
+    """An `ALTER CONNECTION` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-alter-connection
+    """
+
+    type = "alter_connection_statement"
+
+    match_grammar = Sequence(
+        "ALTER",
+        "CONNECTION",
+        Ref("SingleIdentifierGrammar"),
+        OneOf(
+            Ref("SetOwnerGrammar"),
+            Sequence("RENAME", "TO", Ref("ObjectReferenceSegment")),
+            Sequence(
+                "OPTIONS",
+                Bracketed(
+                    Delimited(
+                        Sequence(
+                            OneOf(
+                                Ref("ObjectReferenceSegment"),
+                                Ref("QuotedLiteralSegment"),
+                            ),
+                            OneOf(
+                                Ref("QuotedLiteralSegment"),
+                                Ref("FunctionSegment"),
+                            ),
+                        )
+                    )
+                ),
+            ),
+        ),
+    )
+
+
+class AlterExternalLocationStatementSegment(BaseSegment):
+    """An `ALTER EXTERNAL LOCATION` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-alter-location
+    """
+
+    type = "alter_external_location_statement"
+
+    match_grammar = Sequence(
+        "ALTER",
+        "EXTERNAL",
+        "LOCATION",
+        Ref("SingleIdentifierGrammar"),
+        OneOf(
+            Sequence("RENAME", "TO", Ref("ObjectReferenceSegment")),
+            Sequence(
+                "SET",
+                "URL",
+                Ref("QuotedLiteralSegment"),
+                Sequence("FORCE", optional=True),
+            ),
+            Sequence(
+                "SET",
+                "STORAGE",
+                "CREDENTIAL",
+                Ref("ObjectReferenceSegment"),
+            ),
+            Ref("SetOwnerGrammar"),
+        ),
+    )
+
+
+class AlterCredentialStatementSegment(BaseSegment):
+    """An `ALTER [STORAGE | SERVICE] CREDENTIAL` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-alter-credential
+    """
+
+    type = "alter_credential_statement"
+
+    match_grammar = Sequence(
+        "ALTER",
+        Ref.keyword("STORAGE", optional=True),
+        Ref.keyword("SERVICE", optional=True),
+        "CREDENTIAL",
+        Ref("SingleIdentifierGrammar"),
+        OneOf(
+            Sequence("RENAME", "TO", Ref("ObjectReferenceSegment")),
+            Ref("SetOwnerGrammar"),
+        ),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
@@ -1684,6 +1773,9 @@ class StatementSegment(sparksql.StatementSegment):
             # Unity Catalog
             Ref("AlterCatalogStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
+            Ref("AlterConnectionStatementSegment"),
+            Ref("AlterExternalLocationStatementSegment"),
+            Ref("AlterCredentialStatementSegment"),
             Ref("DropCatalogStatementSegment"),
             Ref("UseCatalogStatementSegment"),
             Ref("AlterVolumeStatementSegment"),
