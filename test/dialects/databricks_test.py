@@ -334,4 +334,9 @@ def test_create_schema_rejections(sql: str) -> None:
         pytest.param("ALTER SHARE s RENAME TO;", id="share_rename_without_value"),
 def test_alter_share_rejections(sql: str) -> None:
     """ALTER SHARE clause boundaries."""
+        pytest.param("ALTER RECIPIENT r SET PROPERTIES ();", id="recipient_empty_properties"),
+        pytest.param("ALTER RECIPIENT r UNSET PROPERTIES ();", id="recipient_empty_unset_properties"),
+        pytest.param("ALTER PROVIDER p RENAME TO;", id="provider_rename_without_value"),
+def test_alter_recipient_provider_rejections(sql: str) -> None:
+    """ALTER RECIPIENT / PROVIDER boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
