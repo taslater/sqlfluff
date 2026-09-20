@@ -1675,6 +1675,109 @@ class MergeInsertClauseSegment(sparksql.MergeInsertClauseSegment):
     )
 
 
+class AlterMaterializedViewStatementSegment(BaseSegment):
+    """An `ALTER MATERIALIZED VIEW` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-alter-materialized-view
+    """
+
+    type = "alter_materialized_view_statement"
+
+    _schedule_clause = OneOf(
+        Sequence(
+            "EVERY",
+            Ref("NumericLiteralSegment"),
+            OneOf("HOUR", "HOURS", "DAY", "DAYS", "WEEK", "WEEKS"),
+        ),
+        Sequence(
+            "CRON",
+            Ref("QuotedLiteralSegment"),
+            Sequence(
+                "AT", "TIME", "ZONE", Ref("QuotedLiteralSegment"), optional=True
+            ),
+        ),
+    )
+    _schedule = OneOf(
+        Sequence(
+            "SCHEDULE",
+            Ref.keyword("REFRESH", optional=True),
+            _schedule_clause,
+        ),
+        Sequence(
+            "TRIGGER",
+            "ON",
+            "UPDATE",
+            Sequence(
+                "AT",
+                "MOST",
+                "EVERY",
+                Ref("IntervalExpressionSegment"),
+                optional=True,
+            ),
+        ),
+    )
+    _column_clause = Sequence(
+        Ref("ColumnReferenceSegment"),
+        OneOf(
+            Ref("CommentGrammar"),
+            Sequence("SET", Ref("MaskStatementSegment")),
+            Sequence("DROP", "MASK"),
+            Ref("SetTagsGrammar"),
+            Ref("UnsetTagsGrammar"),
+        ),
+    )
+
+    match_grammar = Sequence(
+        "ALTER",
+        "MATERIALIZED",
+        "VIEW",
+        Ref("TableReferenceSegment"),
+        OneOf(
+            Sequence(OneOf("ADD", "ALTER"), _schedule),
+            Sequence("DROP", "SCHEDULE"),
+            Sequence("ALTER", "COLUMN", _column_clause),
+            Sequence("SET", Ref("RowFilterClauseGrammar")),
+            Sequence("DROP", "ROW", "FILTER"),
+            Ref("SetTagsGrammar"),
+            Ref("UnsetTagsGrammar"),
+            Ref("SetOwnerGrammar"),
+        ),
+    )
+
+
+class AlterStreamingTableStatementSegment(BaseSegment):
+    """An `ALTER STREAMING TABLE` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-alter-streaming-table
+    """
+
+    type = "alter_streaming_table_statement"
+
+    match_grammar = Sequence(
+        "ALTER",
+        "STREAMING",
+        "TABLE",
+        Ref("TableReferenceSegment"),
+        OneOf(
+            Sequence(
+                OneOf("ADD", "ALTER"),
+                AlterMaterializedViewStatementSegment._schedule,
+            ),
+            Sequence("DROP", "SCHEDULE"),
+            Sequence(
+                "ALTER",
+                "COLUMN",
+                AlterMaterializedViewStatementSegment._column_clause,
+            ),
+            Sequence("SET", Ref("RowFilterClauseGrammar")),
+            Sequence("DROP", "ROW", "FILTER"),
+            Ref("SetTagsGrammar"),
+            Ref("UnsetTagsGrammar"),
+            Ref("SetOwnerGrammar"),
+        ),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
@@ -1684,6 +1787,8 @@ class StatementSegment(sparksql.StatementSegment):
             # Unity Catalog
             Ref("AlterCatalogStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
+            Ref("AlterMaterializedViewStatementSegment"),
+            Ref("AlterStreamingTableStatementSegment"),
             Ref("DropCatalogStatementSegment"),
             Ref("UseCatalogStatementSegment"),
             Ref("AlterVolumeStatementSegment"),

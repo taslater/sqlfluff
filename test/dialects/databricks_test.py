@@ -59,3 +59,16 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("ALTER MATERIALIZED VIEW v ALTER COLUMN c COMMENT;", id="mv_column_comment_without_value"),
+        pytest.param("ALTER MATERIALIZED VIEW v ADD SCHEDULE;", id="mv_add_schedule_without_clause"),
+        pytest.param("ALTER STREAMING TABLE t SET OWNER TO;", id="streaming_table_owner_without_value"),
+    ],
+)
+def test_alter_materialized_view_streaming_table_rejections(sql: str) -> None:
+    """ALTER MATERIALIZED VIEW / STREAMING TABLE boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
