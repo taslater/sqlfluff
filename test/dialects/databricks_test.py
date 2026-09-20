@@ -59,3 +59,17 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param(
+            "MERGE WITH SCHEMA EVOLUTION t USING s ON t.k = s.k WHEN MATCHED THEN UPDATE SET *;",
+            id="schema_evolution_without_into",
+        ),
+    ],
+)
+def test_merge_schema_evolution_rejections(sql: str) -> None:
+    """WITH SCHEMA EVOLUTION is only valid before INTO."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

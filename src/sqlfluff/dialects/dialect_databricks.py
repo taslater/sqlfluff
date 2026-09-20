@@ -2481,3 +2481,14 @@ class CreateFlowStatementSegment(BaseSegment):
             ),
         ),
     )
+
+
+# MERGE [WITH SCHEMA EVOLUTION] INTO. The clause is documented on the Delta
+# MERGE page.
+databricks_dialect.replace(
+    MergeIntoLiteralGrammar=Sequence(
+        "MERGE",
+        Sequence("WITH", "SCHEMA", "EVOLUTION", optional=True),
+        "INTO",
+    ),
+)
