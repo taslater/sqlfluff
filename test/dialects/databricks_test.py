@@ -691,3 +691,23 @@ def test_maintenance_and_utility_rejections(sql: str) -> None:
 def test_uc_show_describe_security_rejections(sql: str) -> None:
     """Unity Catalog SHOW/DESCRIBE and security statement boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("DROP CONNECTION;", id="drop_connection_without_name"),
+        pytest.param("DROP CREDENTIAL;", id="drop_credential_without_name"),
+        pytest.param("DROP EXTERNAL LOCATION;", id="drop_location_without_name"),
+        pytest.param("DROP POLICY p;", id="drop_policy_without_target"),
+        pytest.param("DROP PROCEDURE;", id="drop_procedure_without_name"),
+        pytest.param("DROP PROVIDER;", id="drop_provider_without_name"),
+        pytest.param("DROP RECIPIENT;", id="drop_recipient_without_name"),
+        pytest.param("DROP SHARE;", id="drop_share_without_name"),
+        pytest.param("DROP TEMPORARY VARIABLE;", id="drop_variable_without_name"),
+        pytest.param("DROP TABLE;", id="drop_table_without_name"),
+    ],
+)
+def test_drop_uc_rejections(sql: str) -> None:
+    """Unity Catalog DROP statement boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
