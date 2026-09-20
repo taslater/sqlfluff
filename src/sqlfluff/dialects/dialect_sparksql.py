@@ -664,10 +664,6 @@ sparksql_dialect.add(
                 Ref("StatementSegment"),
             ),
         ),
-        exclude=OneOf(
-            Ref.keyword("HISTORY"),
-            Ref.keyword("DETAIL"),
-        ),
     ),
     FileFormatGrammar=OneOf(
         Ref("DataSourcesV2FileTypeGrammar"),
@@ -3077,8 +3073,6 @@ class StatementSegment(ansi.StatementSegment):
             Ref("DistributeByClauseSegment"),
             # Delta Lake
             Ref("VacuumStatementSegment"),
-            Ref("DescribeHistoryStatementSegment"),
-            Ref("DescribeDetailStatementSegment"),
             Ref("GenerateManifestFileStatementSegment"),
             Ref("ConvertToDeltaStatementSegment"),
             Ref("ExecuteImmediateStatementSegment"),
@@ -3098,6 +3092,18 @@ class StatementSegment(ansi.StatementSegment):
             Ref("CreateModelStatementSegment"),
             Ref("DropModelStatementSegment"),
         ],
+    ).copy(
+        # `DESCRIBE HISTORY tbl` and a plain `DESCRIBE history.tbl` are
+        # ambiguous as far as their prefix goes, so the Delta statements are
+        # tried before the general DESCRIBE: both match `DESCRIBE HISTORY
+        # tbl` in full, and the first of equal-length matches wins. A
+        # qualified `history.tbl` fails the history statement and falls
+        # through to the general one.
+        insert=[
+            Ref("DescribeHistoryStatementSegment"),
+            Ref("DescribeDetailStatementSegment"),
+        ],
+        before=Ref("DescribeStatementSegment"),
     )
 
 
