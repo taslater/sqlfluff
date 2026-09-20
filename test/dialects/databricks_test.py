@@ -81,3 +81,20 @@ def test_or_refresh_is_not_a_view_clause(sql: str) -> None:
     need it.
     """
     assert _violations(sql), f"Expected a parse failure for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("SHOW GRANTS;\n", id="no_securable"),
+        pytest.param("SHOW GRANTS TABLE my_table;\n", id="missing_on"),
+        pytest.param("SHOW GRANTS `alf` my_table;\n", id="principal_without_on"),
+    ],
+)
+def test_show_grants_requires_a_securable(sql: str) -> None:
+    """`SHOW GRANTS [ principal ] ON securable_object`.
+
+    The securable and its `ON` are both required; only the principal is
+    optional.
+    """
+    assert _violations(sql), f"Expected a parse failure for:\n{sql}"
