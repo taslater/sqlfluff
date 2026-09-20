@@ -190,11 +190,6 @@ databricks_dialect.add(
         Ref("NumericLiteralSegment"),
         OneOf("HOUR", "HOURS", "DAY", "DAYS", "WEEK", "WEEKS"),
     ),
-    MergeIntoLiteralGrammar=Sequence(
-        "MERGE",
-        Sequence("WITH", "SCHEMA", "EVOLUTION", optional=True),
-        "INTO",
-    ),
     DefaultCollationClauseGrammar=Sequence(
         "DEFAULT",
         "COLLATION",
@@ -241,20 +236,6 @@ databricks_dialect.replace(
         "SingleIdentifierGrammar"
     ).copy(
         insert=[
-            Ref("CopyIntoTableStatementSegment"),
-            Ref("CreateShareStatementSegment"),
-            Ref("CreateRecipientStatementSegment"),
-            Ref("CreateConnectionStatementSegment"),
-            Ref("CreateExternalLocationStatementSegment"),
-            Ref("AlterShareStatementSegment"),
-            Ref("AlterRecipientStatementSegment"),
-            Ref("AlterProviderStatementSegment"),
-            Ref("AlterConnectionStatementSegment"),
-            Ref("AlterExternalLocationStatementSegment"),
-            Ref("AlterCredentialStatementSegment"),
-            Ref("AlterMaterializedViewStatementSegment"),
-            Ref("AlterStreamingTableStatementSegment"),
-            Ref("AlterGroupStatementSegment"),
             Ref("ParameterizedSegment"),
         ]
     ),
@@ -2704,6 +2685,20 @@ class StatementSegment(sparksql.StatementSegment):
             # Unity Catalog
             Ref("AlterCatalogStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
+            Ref("CopyIntoTableStatementSegment"),
+            Ref("CreateShareStatementSegment"),
+            Ref("CreateRecipientStatementSegment"),
+            Ref("CreateConnectionStatementSegment"),
+            Ref("CreateExternalLocationStatementSegment"),
+            Ref("AlterShareStatementSegment"),
+            Ref("AlterRecipientStatementSegment"),
+            Ref("AlterProviderStatementSegment"),
+            Ref("AlterConnectionStatementSegment"),
+            Ref("AlterExternalLocationStatementSegment"),
+            Ref("AlterCredentialStatementSegment"),
+            Ref("AlterMaterializedViewStatementSegment"),
+            Ref("AlterStreamingTableStatementSegment"),
+            Ref("AlterGroupStatementSegment"),
             Ref("DropCatalogStatementSegment"),
             Ref("UseCatalogStatementSegment"),
             Ref("AlterVolumeStatementSegment"),
