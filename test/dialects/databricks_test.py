@@ -59,3 +59,41 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param(
+            "CREATE FUNCTION f() RETURNS INT CONTAINS SQL READS SQL DATA RETURN 1;",
+            id="contains_sql_and_reads_sql_data",
+        ),
+        pytest.param(
+            "CREATE FUNCTION f() RETURNS INT RETURN 1 AS $$ return 1 $$;",
+            id="body_return_and_as",
+        ),
+        pytest.param(
+            "CREATE FUNCTION f() RETURNS INT LANGUAGE RETURN 1;",
+            id="language_without_name",
+        ),
+        pytest.param(
+            "CREATE FUNCTION f() RETURNS INT DEFAULT COLLATION RETURN 1;",
+            id="default_collation_without_name",
+        ),
+        pytest.param(
+            "CREATE FUNCTION f() RETURNS INT LANGUAGE PYTHON ENVIRONMENT () AS $$ return 1 $$;",
+            id="empty_environment",
+        ),
+        pytest.param(
+            "CREATE FUNCTION f() RETURNS INT LANGUAGE PYTHON ENVIRONMENT (dependencies =) AS $$ return 1 $$;",
+            id="environment_without_value",
+        ),
+        pytest.param(
+            "CREATE FUNCTION f() RETURNS INT;",
+            id="without_body",
+        ),
+    ],
+)
+def test_create_function_characteristic_rejections(sql: str) -> None:
+    """CREATE FUNCTION characteristic boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

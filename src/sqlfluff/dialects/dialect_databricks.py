@@ -1736,10 +1736,18 @@ class FunctionDefinitionGrammar(ansi.FunctionDefinitionGrammar):
     """This is the body of a `CREATE FUNCTION AS` statement."""
 
     match_grammar = Sequence(
+        # Characteristics, in any order. CONTAINS SQL and READS SQL DATA are
+        # exclusive alternatives, and DEFAULT COLLATION and ENVIRONMENT are
+        # characteristics too.
         AnyNumberOf(
             Sequence(
                 "LANGUAGE",
-                OneOf(Ref.keyword("SQL"), Ref.keyword("PYTHON")),
+                OneOf(
+                    Ref.keyword("SQL"),
+                    Ref.keyword("PYTHON"),
+                    Ref.keyword("SCALA"),
+                    Ref.keyword("JAVA"),
+                ),
                 optional=True,
             ),
             Sequence(
@@ -1747,38 +1755,62 @@ class FunctionDefinitionGrammar(ansi.FunctionDefinitionGrammar):
                 optional=True,
             ),
             Ref("CommentClauseSegment", optional=True),
-            Sequence(
-                OneOf(Sequence("CONTAINS", "SQL"), Sequence("READS", "SQL", "DATA")),
+            OneOf(
+                Sequence("CONTAINS", "SQL"),
+                Sequence("READS", "SQL", "DATA"),
                 optional=True,
             ),
             Sequence(
+                "DEFAULT",
+                "COLLATION",
+                Ref("SingleIdentifierGrammar"),
+                optional=True,
+            ),
+            Sequence(
+                "ENVIRONMENT",
+                Bracketed(
+                    Delimited(
+                        Sequence(
+                            Ref("SingleIdentifierGrammar"),
+                            Ref("EqualsSegment"),
+                            Ref("QuotedLiteralSegment"),
+                        )
+                    )
+                ),
+                optional=True,
+            ),
+            # Each characteristic appears at most once, so CONTAINS SQL and
+            # READS SQL DATA cannot both be given.
+            max_times_per_element=1,
+        ),
+        # Exactly one body: a quoted body, a RETURN body, or a handler for a
+        # SCALA / JAVA function.
+        OneOf(
+            Sequence(
+                "AS",
                 OneOf(
-                    Sequence(
-                        "AS",
+                    Ref("DoubleQuotedUDFBody"),
+                    Ref("SingleQuotedUDFBody"),
+                    Ref("DollarQuotedUDFBody"),
+                    Bracketed(
                         OneOf(
-                            Ref("DoubleQuotedUDFBody"),
-                            Ref("SingleQuotedUDFBody"),
-                            Ref("DollarQuotedUDFBody"),
-                            Bracketed(
-                                OneOf(
-                                    Ref("ExpressionSegment"),
-                                    Ref("SelectStatementSegment"),
-                                )
-                            ),
-                        ),
-                    ),
-                    Sequence(
-                        "RETURN",
-                        OneOf(
-                            Ref("SetExpressionSegment"),
                             Ref("ExpressionSegment"),
                             Ref("SelectStatementSegment"),
-                            Ref("WithCompoundStatementSegment"),
-                        ),
+                        )
                     ),
-                )
+                ),
             ),
-        )
+            Sequence(
+                "RETURN",
+                OneOf(
+                    Ref("SetExpressionSegment"),
+                    Ref("ExpressionSegment"),
+                    Ref("SelectStatementSegment"),
+                    Ref("WithCompoundStatementSegment"),
+                ),
+            ),
+            Sequence("HANDLER", Ref("QuotedLiteralSegment")),
+        ),
     )
 
 
@@ -1792,6 +1824,9 @@ class CreateDatabricksFunctionStatementSegment(BaseSegment):
 
     match_grammar: Matchable = Sequence(
         "CREATE",
+        # NB: OR REPLACE and IF NOT EXISTS may combine here, because the
+        # Spark `AS class_name USING JAR` form allows both; the reference's
+        # exclusivity for SQL functions is left as a known over-acceptance.
         Ref("OrReplaceGrammar", optional=True),
         Ref("TemporaryGrammar", optional=True),
         "FUNCTION",
