@@ -860,8 +860,15 @@ databricks_dialect.replace(
         "NOT",
         "NULL",
     ),
+    # IDENTIFIER heads the identifier clause, not a function, so it is
+    # excluded from function names (which otherwise accept any word).
     FunctionNameIdentifierSegment=OneOf(
-        TypedParser("word", WordSegment, type="function_name_identifier"),
+        RegexParser(
+            r"[A-Z_][A-Z0-9_]*",
+            WordSegment,
+            type="function_name_identifier",
+            anti_template=r"IDENTIFIER",
+        ),
         Ref("BackQuotedIdentifierSegment"),
     ),
     PreTableFunctionKeywordsGrammar=OneOf("STREAM"),
@@ -967,6 +974,7 @@ class IdentifierClauseSegment(BaseSegment):
     )
 
 
+
 class ObjectReferenceSegment(ansi.ObjectReferenceSegment):
     """A reference to an object."""
 
@@ -977,6 +985,16 @@ class ObjectReferenceSegment(ansi.ObjectReferenceSegment):
         terminators=[Ref("ObjectReferenceTerminatorGrammar")],
         allow_gaps=False,
     )
+
+class ColumnReferenceSegment(ObjectReferenceSegment):
+    """A reference to a column, field or alias.
+
+    Inherits the Databricks object reference so `IDENTIFIER( ... )` can appear
+    as a column (`SELECT IDENTIFIER('col')`); the ANSI column reference
+    captures the ANSI grammar, which does not carry the identifier clause.
+    """
+
+    type = "column_reference"
 
 
 class DatabaseReferenceSegment(ObjectReferenceSegment):
@@ -4158,6 +4176,20 @@ class InsertStatementSegment(sparksql.InsertStatementSegment):
                 Ref("BracketedColumnReferenceListGrammar"),
                 Ref("InsertSourceGrammar"),
             ),
+            # A parenthesised query source. It comes before the general
+            # `REPLACE ON` alternative because an expression greedily reads
+            # `s.a (SELECT ...)` as a function call, so the boolean here is
+            # bound tightly enough to leave the query for this grammar.
+            Sequence(
+                Sequence("AS", Ref("SingleIdentifierGrammar"), optional=True),
+                "REPLACE",
+                "ON",
+                Ref("ColumnReferenceSegment"),
+                Ref("ComparisonOperatorGrammar"),
+                Ref("ColumnReferenceSegment"),
+                Bracketed(Ref("SelectableGrammar")),
+                Ref("AliasExpressionSegment", optional=True),
+            ),
             Sequence(
                 Sequence("AS", Ref("SingleIdentifierGrammar"), optional=True),
                 "REPLACE",
@@ -4420,7 +4452,6 @@ class FromStatementSegment(BaseSegment):
                 Ref("PipeOperatorSegment"),
                 Ref("PipedOperationSegment"),
             ),
-            min_times=1,
         ),
     )
 
@@ -4631,13 +4662,20 @@ class CreateDatabricksFunctionStatementSegment(BaseSegment):
 
     match_grammar: Matchable = Sequence(
         "CREATE",
-        # NB: OR REPLACE and IF NOT EXISTS may combine here, because the
-        # Spark `AS class_name USING JAR` form allows both; the reference's
-        # exclusivity for SQL functions is left as a known over-acceptance.
-        Ref("OrReplaceGrammar", optional=True),
-        Ref("TemporaryGrammar", optional=True),
-        "FUNCTION",
-        Ref("IfNotExistsGrammar", optional=True),
+        # The reference makes OR REPLACE and IF NOT EXISTS exclusive: each
+        # parameter entry says it cannot be combined with the other.
+        OneOf(
+            Sequence(
+                Ref("OrReplaceGrammar"),
+                Ref("TemporaryGrammar", optional=True),
+                "FUNCTION",
+            ),
+            Sequence(
+                Ref("TemporaryGrammar", optional=True),
+                "FUNCTION",
+                Ref("IfNotExistsGrammar", optional=True),
+            ),
+        ),
         Ref("FunctionNameSegment"),
         Ref("FunctionParameterListGrammarWithComments"),
         Sequence(

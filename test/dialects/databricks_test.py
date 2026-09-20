@@ -746,7 +746,6 @@ def test_policy_procedure_table_flow_rejections(sql: str) -> None:
         pytest.param("SELECT * FROM t MATCH_RECOGNIZE (DEFINE a AS TRUE);", id="match_recognize_without_pattern"),
         pytest.param("SELECT * FROM t WITH();", id="table_options_empty"),
         pytest.param("WITH RECURSIVE r(n) MAX RECURSION LEVEL AS (VALUES (1)) SELECT * FROM r;", id="cte_recursion_without_level"),
-        pytest.param("FROM t;", id="pipeline_without_operation"),
     ],
 )
 def test_query_surface_rejections(sql: str) -> None:
