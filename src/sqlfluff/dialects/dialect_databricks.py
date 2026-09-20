@@ -230,6 +230,22 @@ databricks_dialect.replace(
 )
 
 databricks_dialect.add(
+    # A default collation may be a bare identifier (CREATE) or a quoted string
+    # (ALTER CATALOG / SCHEMA). RETAIN DROPPED takes FOR on the CREATE
+    # statements and TO on ALTER, with an optional SET.
+    DefaultCollationClauseGrammar=Sequence(
+        "DEFAULT",
+        "COLLATION",
+        OneOf(Ref("SingleIdentifierGrammar"), Ref("QuotedLiteralSegment")),
+    ),
+    RetainDroppedClauseGrammar=Sequence(
+        Ref.keyword("SET", optional=True),
+        "RETAIN",
+        "DROPPED",
+        OneOf("FOR", "TO"),
+        Ref("NumericLiteralSegment"),
+        OneOf("HOUR", "HOURS", "DAY", "DAYS", "WEEK", "WEEKS"),
+    ),
     PredictiveOptimizationGrammar=Sequence(
         OneOf("ENABLE", "DISABLE", "INHERIT"),
         "PREDICTIVE",
@@ -721,6 +737,26 @@ class AlterCatalogStatementSegment(BaseSegment):
             Ref("SetTagsGrammar"),
             Ref("UnsetTagsGrammar"),
             Ref("PredictiveOptimizationGrammar"),
+            Ref("DefaultCollationClauseGrammar"),
+            Ref("RetainDroppedClauseGrammar"),
+            Sequence("SET", "MANAGED", "LOCATION", Ref("QuotedLiteralSegment")),
+            Sequence(
+                "OPTIONS",
+                Bracketed(
+                    Delimited(
+                        Sequence(
+                            OneOf(
+                                Ref("ObjectReferenceSegment"),
+                                Ref("QuotedLiteralSegment"),
+                            ),
+                            OneOf(
+                                Ref("QuotedLiteralSegment"),
+                                Ref("FunctionSegment"),
+                            ),
+                        )
+                    )
+                ),
+            ),
         ),
     )
 
@@ -813,6 +849,9 @@ class AlterDatabaseStatementSegment(sparksql.AlterDatabaseStatementSegment):
             Ref("SetTagsGrammar"),
             Ref("UnsetTagsGrammar"),
             Ref("PredictiveOptimizationGrammar"),
+            Ref("DefaultCollationClauseGrammar"),
+            Ref("RetainDroppedClauseGrammar"),
+            Sequence("SET", "MANAGED", "LOCATION", Ref("QuotedLiteralSegment")),
         ),
     )
 
