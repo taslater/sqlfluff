@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: ef6188e3bf0ccf589b0b7f3b7e022bb3bce85bbf1498ab3d16b0e7600a16fe4e
+_hash: 878fb1dfaefcf3bca473c98f6c0b02563c1608fe614b3cf9bb75de532e732b40
 file:
 - statement:
     select_statement:
@@ -385,15 +385,16 @@ file:
     use_database_statement:
     - keyword: USE
     - keyword: SCHEMA
-    - identifier_clause_segment:
-        keyword: IDENTIFIER
-        bracketed:
-          start_bracket: (
-          expression:
-            parameterized_expression:
-              colon: ':'
-              naked_identifier: schema_name
-          end_bracket: )
+    - database_reference:
+        identifier_clause_segment:
+          keyword: IDENTIFIER
+          bracketed:
+            start_bracket: (
+            expression:
+              parameterized_expression:
+                colon: ':'
+                naked_identifier: schema_name
+            end_bracket: )
 - statement_terminator: ;
 - statement:
     create_widget_statement:

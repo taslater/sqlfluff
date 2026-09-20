@@ -182,6 +182,27 @@ databricks_dialect.insert_lexer_matchers(
 
 
 databricks_dialect.replace(
+    # OFFSET is a legal column name, so it is not a FROM terminator; the
+    # alias grammar excludes it explicitly instead.
+    FromClauseTerminatorGrammar=OneOf(
+        "WHERE",
+        Ref("LimitClauseSegment"),
+        Sequence("GROUP", "BY"),
+        Sequence("ORDER", "BY"),
+        "HAVING",
+        "QUALIFY",
+        "WINDOW",
+        Sequence("CLUSTER", "BY"),
+        Sequence("DISTRIBUTE", "BY"),
+        Sequence("SORT", "BY"),
+        Ref("SetOperatorSegment"),
+        Ref("WithNoSchemaBindingClauseSegment"),
+        Ref("WithDataClauseSegment"),
+        "FETCH",
+    ),
+)
+
+databricks_dialect.replace(
     PostTableExpressionGrammar=OneOf(
         Ref("TableOptionsSegment"),
         Ref("MatchRecognizeSegment"),
@@ -215,14 +236,17 @@ databricks_dialect.add(
     ),
     # The RESTORE target, guarded so the optional `TO` keyword is not read
     # as a table name.
-    RestoreTableReferenceSegment=OneOf(
-        Ref("BackQuotedIdentifierSegment"),
-        RegexParser(
-            r"[A-Z_][A-Z0-9_]*",
-            IdentifierSegment,
-            type="naked_identifier",
-            anti_template=r"TO|VERSION|TIMESTAMP",
+    RestoreTableReferenceSegment=Delimited(
+        OneOf(
+            Ref("BackQuotedIdentifierSegment"),
+            RegexParser(
+                r"[A-Z_][A-Z0-9_]*",
+                IdentifierSegment,
+                type="naked_identifier",
+                anti_template=r"(?:TO|VERSION|TIMESTAMP)$",
+            ),
         ),
+        delimiter=Ref("ObjectReferenceDelimiterGrammar"),
     ),
     # A table reference for DESCRIBE, which must not swallow the object
     # keywords (each of which also heads its own DESCRIBE form).
@@ -485,7 +509,7 @@ databricks_dialect.replace(
                 "TABLE",
                 Ref("IfNotExistsGrammar", optional=True),
             ),
-            # CREATE {TEMP | TEMPORARY} TABLE
+            # CREATE {TEMP | TEMPORARY} [LIVE] TABLE
             Sequence(
                 Ref("TemporaryGrammar"),
                 OneOf(
@@ -493,6 +517,7 @@ databricks_dialect.replace(
                     Ref.keyword("STREAMING"),
                     optional=True,
                 ),
+                Ref.keyword("LIVE", optional=True),
                 "TABLE",
             ),
         ),
@@ -504,8 +529,12 @@ databricks_dialect.replace(
             # Columns and comment syntax:
             Bracketed(
                 Sequence(
-                    # The first entry must be a column, not a constraint.
-                    Ref("ColumnFieldDefinitionSegment"),
+                    # The first entry must be a column or a pipeline
+                    # expectation, not a table constraint.
+                    OneOf(
+                        Ref("ColumnFieldDefinitionSegment"),
+                        Ref("ConstraintStatementSegment"),
+                    ),
                     Ref("CommentGrammar", optional=True),
                     AnyNumberOf(
                         Sequence(
@@ -513,11 +542,11 @@ databricks_dialect.replace(
                             OneOf(
                                 Ref("ColumnFieldDefinitionSegment"),
                                 Ref("TableConstraintSegment"),
+                                Ref("ConstraintStatementSegment"),
                             ),
                             Ref("CommentGrammar", optional=True),
                         ),
                     ),
-                    Ref("ConstraintStatementSegment", optional=True),
                 ),
             ),
             # Like Syntax
@@ -1057,37 +1086,42 @@ class FromExpressionElementSegment(sparksql.FromExpressionElementSegment):
     `FROM STREAM source`), but it may only be a prefix keyword when a table
     expression follows it. Making it a plain optional prefix, as the shared
     grammar allows, makes a table named `stream` unparsable.
+
+    The alias excludes the clause keywords Databricks keeps unreserved, so
+    they are not consumed as implicit aliases.
     """
 
-    match_grammar = (
-        sparksql.FromExpressionElementSegment.match_grammar.copy(
-            insert=[
-                OneOf(
-                    Sequence(
-                        "STREAM",
-                        OptionallyBracketed(Ref("TableExpressionSegment")),
-                    ),
-                    OptionallyBracketed(Ref("TableExpressionSegment")),
-                )
-            ],
-            at=0,
-            remove=[
-                Ref("PreTableFunctionKeywordsGrammar", optional=True),
+    _alias_exclude = OneOf(
+        Ref("FromClauseTerminatorGrammar"),
+        Ref("JoinLikeClauseGrammar"),
+        Ref.keyword("OFFSET"),
+        Ref.keyword("LIMIT"),
+        Ref.keyword("CLUSTER"),
+        Ref.keyword("DISTRIBUTE"),
+        Ref.keyword("SORT"),
+    )
+
+    match_grammar = Sequence(
+        OneOf(
+            Sequence(
+                "STREAM",
                 OptionallyBracketed(Ref("TableExpressionSegment")),
-            ],
-        ).copy(
-            # A table alias may follow a MATCH_RECOGNIZE clause.
-            insert=[
-                Ref(
-                    "AliasExpressionSegment",
-                    exclude=OneOf(
-                        Ref("FromClauseTerminatorGrammar"),
-                        Ref("JoinLikeClauseGrammar"),
-                    ),
-                    optional=True,
-                )
-            ],
-        )
+            ),
+            OptionallyBracketed(Ref("TableExpressionSegment")),
+        ),
+        Ref("SamplingExpressionSegment", optional=True),
+        Ref(
+            "AliasExpressionSegment",
+            exclude=_alias_exclude,
+            optional=True,
+        ),
+        Ref("PostTableExpressionGrammar", optional=True),
+        # A table alias may follow a MATCH_RECOGNIZE clause.
+        Ref(
+            "AliasExpressionSegment",
+            exclude=_alias_exclude,
+            optional=True,
+        ),
     )
 
 
@@ -1367,7 +1401,7 @@ class UseDatabaseStatementSegment(sparksql.UseDatabaseStatementSegment):
         OneOf(
             Sequence(
                 OneOf("DATABASE", "SCHEMA"),
-                _name,
+                Ref("DatabaseReferenceSegment"),
             ),
             _name,
         ),

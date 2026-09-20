@@ -7,7 +7,6 @@ RESERVED_KEYWORDS = [
     "IDENTIFIER",
     "ALL",
     "DISTINCT",
-    "OFFSET",
     "MATCH_RECOGNIZE",
     "WITH",
     "RECIPIENT",
@@ -30,6 +29,7 @@ RESERVED_KEYWORDS = [
 ]
 
 UNRESERVED_KEYWORDS = [
+    "OFFSET",
     "ONE",
     "PER",
     "DEFINE",
