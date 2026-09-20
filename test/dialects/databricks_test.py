@@ -305,4 +305,8 @@ def test_create_table_clause_rejections(sql: str) -> None:
         pytest.param("VACUUM t DRY RUN FULL;", id="vacuum_dry_run_and_full"),
 def test_maintenance_full_mode_rejections(sql: str) -> None:
     """OPTIMIZE / VACUUM clause boundaries and exclusive FULL/LITE modes."""
+            "MERGE WITH SCHEMA EVOLUTION t USING s ON t.k = s.k WHEN MATCHED THEN UPDATE SET *;",
+            id="schema_evolution_without_into",
+def test_merge_schema_evolution_rejections(sql: str) -> None:
+    """WITH SCHEMA EVOLUTION is only valid before INTO."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
