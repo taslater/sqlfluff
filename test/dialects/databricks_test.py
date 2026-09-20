@@ -735,3 +735,20 @@ def test_insert_and_restore_rejections(sql: str) -> None:
 def test_policy_procedure_table_flow_rejections(sql: str) -> None:
     """CREATE POLICY / PROCEDURE / pipeline TABLE FLOW boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("SELECT * FROM t OFFSET;", id="offset_without_expression"),
+        pytest.param("SELECT * FROM test TABLESAMPLE ();", id="tablesample_without_sample"),
+        pytest.param("SELECT * FROM test TABLESAMPLE (30 PERCENT) REPEATABLE ();", id="repeatable_without_seed"),
+        pytest.param("SELECT * FROM t MATCH_RECOGNIZE (DEFINE a AS TRUE);", id="match_recognize_without_pattern"),
+        pytest.param("SELECT * FROM t WITH();", id="table_options_empty"),
+        pytest.param("WITH RECURSIVE r(n) MAX RECURSION LEVEL AS (VALUES (1)) SELECT * FROM r;", id="cte_recursion_without_level"),
+        pytest.param("FROM t;", id="pipeline_without_operation"),
+    ],
+)
+def test_query_surface_rejections(sql: str) -> None:
+    """Query-surface boundaries: OFFSET, sampling, MATCH_RECOGNIZE, pipeline."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

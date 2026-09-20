@@ -4,6 +4,9 @@ https://docs.databricks.com/sql/language-manual/sql-ref-reserved-words.html
 """
 
 RESERVED_KEYWORDS = [
+    "OFFSET",
+    "MATCH_RECOGNIZE",
+    "WITH",
     "RECIPIENT",
     "FOREIGN",
     "DO",
@@ -24,6 +27,16 @@ RESERVED_KEYWORDS = [
 ]
 
 UNRESERVED_KEYWORDS = [
+    "ONE",
+    "PER",
+    "DEFINE",
+    "LAST",
+    "LEVEL",
+    "MEASURES",
+    "PAST",
+    "RECURSION",
+    "REPEATABLE",
+    "SKIP",
     "DEFINER",
     "DETERMINISTIC",
     "INOUT",

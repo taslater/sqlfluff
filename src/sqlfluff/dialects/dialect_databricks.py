@@ -182,6 +182,13 @@ databricks_dialect.insert_lexer_matchers(
 
 
 databricks_dialect.replace(
+    PostTableExpressionGrammar=OneOf(
+        Ref("TableOptionsSegment"),
+        Ref("MatchRecognizeSegment"),
+    ),
+)
+
+databricks_dialect.replace(
     # Timestamp time travel accepts an arithmetic timestamp expression.
     TimestampAsOfGrammar=Sequence(
         "TIMESTAMP",
@@ -1021,21 +1028,35 @@ class FromExpressionElementSegment(sparksql.FromExpressionElementSegment):
     grammar allows, makes a table named `stream` unparsable.
     """
 
-    match_grammar = sparksql.FromExpressionElementSegment.match_grammar.copy(
-        insert=[
-            OneOf(
-                Sequence(
-                    "STREAM",
+    match_grammar = (
+        sparksql.FromExpressionElementSegment.match_grammar.copy(
+            insert=[
+                OneOf(
+                    Sequence(
+                        "STREAM",
+                        OptionallyBracketed(Ref("TableExpressionSegment")),
+                    ),
                     OptionallyBracketed(Ref("TableExpressionSegment")),
-                ),
+                )
+            ],
+            at=0,
+            remove=[
+                Ref("PreTableFunctionKeywordsGrammar", optional=True),
                 OptionallyBracketed(Ref("TableExpressionSegment")),
-            )
-        ],
-        at=0,
-        remove=[
-            Ref("PreTableFunctionKeywordsGrammar", optional=True),
-            OptionallyBracketed(Ref("TableExpressionSegment")),
-        ],
+            ],
+        ).copy(
+            # A table alias may follow a MATCH_RECOGNIZE clause.
+            insert=[
+                Ref(
+                    "AliasExpressionSegment",
+                    exclude=OneOf(
+                        Ref("FromClauseTerminatorGrammar"),
+                        Ref("JoinLikeClauseGrammar"),
+                    ),
+                    optional=True,
+                )
+            ],
+        )
     )
 
 
@@ -2299,6 +2320,130 @@ class OptimizeTableStatementSegment(BaseSegment):
     )
 
 
+class OffsetClauseSegment(ansi.OffsetClauseSegment):
+    """An `OFFSET` clause.
+
+    Databricks does not require the ANSI `ROW`/`ROWS` keyword after the count.
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-offset
+    """
+
+    match_grammar = Sequence(
+        "OFFSET",
+        OneOf(
+            Ref("NumericLiteralSegment"),
+            Ref("ExpressionSegment", exclude=Ref.keyword("ROW")),
+        ),
+        OneOf("ROW", "ROWS", optional=True),
+    )
+
+
+class SamplingExpressionSegment(sparksql.SamplingExpressionSegment):
+    """A `TABLESAMPLE` clause, with the optional `REPEATABLE` seed."""
+
+    match_grammar = sparksql.SamplingExpressionSegment.match_grammar.copy(
+        insert=[
+            Sequence(
+                "REPEATABLE",
+                Bracketed(Ref("NumericLiteralSegment")),
+                optional=True,
+            )
+        ],
+    )
+
+
+class MatchRecognizeSegment(BaseSegment):
+    """A `MATCH_RECOGNIZE` clause.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-match-recognize
+    """
+
+    type = "match_recognize"
+    match_grammar = Sequence(
+        "MATCH_RECOGNIZE",
+        Bracketed(
+            Sequence(
+                Sequence(
+                    "PARTITION",
+                    "BY",
+                    Delimited(Ref("ExpressionSegment")),
+                    optional=True,
+                ),
+                Sequence(
+                    "ORDER",
+                    "BY",
+                    Delimited(Ref("ExpressionSegment")),
+                    optional=True,
+                ),
+                Sequence(
+                    "MEASURES",
+                    Delimited(
+                        Sequence(
+                            Ref("ExpressionSegment"),
+                            "AS",
+                            Ref("SingleIdentifierGrammar"),
+                        )
+                    ),
+                    optional=True,
+                ),
+                OneOf(
+                    Sequence("ONE", "ROW", "PER", "MATCH"),
+                    Sequence(
+                        "ALL",
+                        "ROWS",
+                        "PER",
+                        "MATCH",
+                        Sequence("SHOW", "EMPTY", "MATCHES", optional=True),
+                    ),
+                    optional=True,
+                ),
+                Sequence(
+                    "AFTER",
+                    "MATCH",
+                    "SKIP",
+                    "PAST",
+                    "LAST",
+                    "ROW",
+                    optional=True,
+                ),
+                "PATTERN",
+                Bracketed(Anything()),
+                "DEFINE",
+                Delimited(
+                    Sequence(
+                        Ref("SingleIdentifierGrammar"),
+                        "AS",
+                        Ref("ExpressionSegment"),
+                    )
+                ),
+            )
+        ),
+    )
+
+
+class TableOptionsSegment(BaseSegment):
+    """A `WITH ( ... )` options specification on a table reference.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-table-reference
+    """
+
+    type = "table_options"
+    match_grammar = Sequence(
+        "WITH",
+        Bracketed(
+            Delimited(
+                Sequence(
+                    Ref("SingleIdentifierGrammar"),
+                    Sequence(
+                        Ref("EqualsSegment", optional=True),
+                        Ref("ExpressionSegment"),
+                        optional=True,
+                    ),
+                )
+            )
+        ),
+    )
+
+
 class LimitClauseSegment(sparksql.LimitClauseSegment):
     """A `LIMIT` clause like in `SELECT`.
 
@@ -2315,6 +2460,8 @@ class LimitClauseSegment(sparksql.LimitClauseSegment):
             Ref("ParameterizedSegment"),  # Add support for parameters
         ),
         Dedent,
+        # Databricks orders `LIMIT ... OFFSET ...`.
+        Ref("OffsetClauseSegment", optional=True),
     )
 
 
@@ -4055,12 +4202,97 @@ class CreateProcedureStatementSegment(BaseSegment):
     )
 
 
+class CTEDefinitionSegment(ansi.CTEDefinitionSegment):
+    """A CTE definition, with the optional `MAX RECURSION LEVEL`.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-select-cte
+    """
+
+    match_grammar = ansi.CTEDefinitionSegment.match_grammar.copy(
+        insert=[
+            Sequence(
+                "MAX",
+                "RECURSION",
+                "LEVEL",
+                Ref("NumericLiteralSegment"),
+                optional=True,
+            )
+        ],
+        at=2,
+    )
+
+
+class PipeOperatorSegment(BaseSegment):
+    """The SQL pipeline `|>` operator."""
+
+    type = "pipe_operator"
+    match_grammar = Sequence(
+        Ref("PipeSegment"),
+        Ref("RawGreaterThanSegment"),
+        allow_gaps=False,
+    )
+
+
+class PipedOperationSegment(BaseSegment):
+    """A piped operation in a SQL pipeline.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-pipeline
+    """
+
+    type = "piped_operation"
+    match_grammar = OneOf(
+        Ref("SelectStatementSegment"),
+        Ref("WhereClauseSegment"),
+    )
+
+
+class TableRelationStatementSegment(BaseSegment):
+    """A `TABLE relation_name` query, optionally piped.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-query
+    """
+
+    type = "table_relation_statement"
+    match_grammar = Sequence(
+        "TABLE",
+        Ref("TableReferenceSegment"),
+        AnyNumberOf(
+            Sequence(
+                Ref("PipeOperatorSegment"),
+                Ref("PipedOperationSegment"),
+            ),
+        ),
+    )
+
+
+class FromStatementSegment(BaseSegment):
+    """A `FROM relation_name |> operation` SQL pipeline.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-pipeline
+    """
+
+    type = "from_statement"
+    match_grammar = Sequence(
+        "FROM",
+        Ref("TableReferenceSegment"),
+        AnyNumberOf(
+            Sequence(
+                Ref("PipeOperatorSegment"),
+                Ref("PipedOperationSegment"),
+            ),
+            min_times=1,
+        ),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
     match_grammar = sparksql.StatementSegment.match_grammar.copy(
         # Segments defined in Databricks SQL dialect
         insert=[
+            Ref("FromStatementSegment"),
+            Ref("TableRelationStatementSegment"),
             Ref("CreatePolicyStatementSegment"),
             Ref("CreateProcedureStatementSegment"),
             Ref("DropConnectionStatementSegment"),
