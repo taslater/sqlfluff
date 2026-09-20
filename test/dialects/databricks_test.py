@@ -711,3 +711,18 @@ def test_uc_show_describe_security_rejections(sql: str) -> None:
 def test_drop_uc_rejections(sql: str) -> None:
     """Unity Catalog DROP statement boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("INSERT INTO t REPLACE ON SELECT a FROM s;", id="insert_replace_on_without_expression"),
+        pytest.param("RESTORE TABLE employee;", id="restore_without_version"),
+        pytest.param("RESTORE TABLE employee TO;", id="restore_without_time_travel"),
+        pytest.param("RESTORE TABLE employee TO TIMESTAMP AS OF;", id="restore_timestamp_without_expression"),
+        pytest.param("RESTORE TO VERSION AS OF 1;", id="restore_without_table_name"),
+    ],
+)
+def test_insert_and_restore_rejections(sql: str) -> None:
+    """INSERT/REPLACE ON and RESTORE boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

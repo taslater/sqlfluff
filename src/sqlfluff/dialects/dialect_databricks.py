@@ -181,6 +181,16 @@ databricks_dialect.insert_lexer_matchers(
 )
 
 
+databricks_dialect.replace(
+    # Timestamp time travel accepts an arithmetic timestamp expression.
+    TimestampAsOfGrammar=Sequence(
+        "TIMESTAMP",
+        "AS",
+        "OF",
+        Ref("ExpressionSegment"),
+    ),
+)
+
 databricks_dialect.add(
     # A bare table reference for REFRESH, which must not swallow the TABLE or
     # FUNCTION clause keywords (both are legal identifier spellings).
@@ -195,6 +205,17 @@ databricks_dialect.add(
             ),
         ),
         delimiter=Ref("ObjectReferenceDelimiterGrammar"),
+    ),
+    # The RESTORE target, guarded so the optional `TO` keyword is not read
+    # as a table name.
+    RestoreTableReferenceSegment=OneOf(
+        Ref("BackQuotedIdentifierSegment"),
+        RegexParser(
+            r"[A-Z_][A-Z0-9_]*",
+            IdentifierSegment,
+            type="naked_identifier",
+            anti_template=r"TO|VERSION|TIMESTAMP",
+        ),
     ),
     # A table reference for DESCRIBE, which must not swallow the object
     # keywords (each of which also heads its own DESCRIBE form).
@@ -3803,6 +3824,80 @@ class DropVariableStatementSegment(BaseSegment):
         "VARIABLE",
         Ref("IfExistsGrammar", optional=True),
         Ref("VariableNameIdentifierSegment"),
+    )
+
+
+class InsertStatementSegment(sparksql.InsertStatementSegment):
+    """An `INSERT` statement.
+
+    Adds `WITH SCHEMA EVOLUTION` and the `REPLACE ON` alternative.
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-dml-insert-into
+    """
+
+    type = "insert_statement"
+    match_grammar = Sequence(
+        "INSERT",
+        Sequence("WITH", "SCHEMA", "EVOLUTION", optional=True),
+        OneOf("INTO", "OVERWRITE"),
+        Ref.keyword("TABLE", optional=True),
+        Ref("TableReferenceSegment"),
+        OneOf(
+            Sequence(
+                Ref("PartitionSpecGrammar", optional=True),
+                OneOf(
+                    Ref("BracketedColumnReferenceListGrammar"),
+                    Sequence("BY", "NAME"),
+                    optional=True,
+                ),
+                Ref("InsertSourceGrammar"),
+            ),
+            Sequence(
+                "REPLACE",
+                Ref("WhereClauseSegment"),
+                Ref("InsertSourceGrammar"),
+            ),
+            Sequence(
+                "REPLACE",
+                "USING",
+                Ref("BracketedColumnReferenceListGrammar"),
+                Ref("InsertSourceGrammar"),
+            ),
+            Sequence(
+                Sequence("AS", Ref("SingleIdentifierGrammar"), optional=True),
+                "REPLACE",
+                "ON",
+                Ref("ExpressionSegment"),
+                OneOf(
+                    Sequence(
+                        Bracketed(Ref("SelectableGrammar")),
+                        Ref("AliasExpressionSegment", optional=True),
+                    ),
+                    Ref("InsertSourceGrammar"),
+                ),
+            ),
+        ),
+    )
+
+
+class RestoreTableStatementSegment(sparksql.RestoreTableStatementSegment):
+    """A `RESTORE` statement with optional `TABLE` and `TO`.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/delta-restore
+    """
+
+    match_grammar = Sequence(
+        "RESTORE",
+        Ref.keyword("TABLE", optional=True),
+        OneOf(
+            Ref("QuotedLiteralSegment"),
+            Ref("FileReferenceSegment"),
+            Ref("RestoreTableReferenceSegment"),
+        ),
+        Ref.keyword("TO", optional=True),
+        OneOf(
+            Ref("TimestampAsOfGrammar"),
+            Ref("VersionAsOfGrammar"),
+        ),
     )
 
 
