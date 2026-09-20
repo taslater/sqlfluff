@@ -59,3 +59,16 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("ALTER SHARE s ADD TABLE;", id="share_add_table_without_name"),
+        pytest.param("ALTER SHARE s ADD;", id="share_add_without_object"),
+        pytest.param("ALTER SHARE s RENAME TO;", id="share_rename_without_value"),
+    ],
+)
+def test_alter_share_rejections(sql: str) -> None:
+    """ALTER SHARE clause boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

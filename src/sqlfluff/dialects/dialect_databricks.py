@@ -1675,6 +1675,80 @@ class MergeInsertClauseSegment(sparksql.MergeInsertClauseSegment):
     )
 
 
+class AlterShareStatementSegment(BaseSegment):
+    """An `ALTER SHARE` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-alter-share
+    """
+
+    type = "alter_share_statement"
+
+    # { ALTER | ADD } <object>. TABLE is the only optional keyword.
+    _add_object = Sequence(
+        OneOf("ALTER", "ADD"),
+        OneOf(
+            Sequence(
+                "MATERIALIZED",
+                "VIEW",
+                Ref("ObjectReferenceSegment"),
+                Ref("CommentGrammar", optional=True),
+                Sequence("AS", Ref("ObjectReferenceSegment"), optional=True),
+            ),
+            Sequence(
+                "SCHEMA",
+                Ref("ObjectReferenceSegment"),
+                Ref("CommentGrammar", optional=True),
+            ),
+            Sequence(
+                "VIEW",
+                Ref("ObjectReferenceSegment"),
+                Ref("CommentGrammar", optional=True),
+                Sequence("AS", Ref("ObjectReferenceSegment"), optional=True),
+            ),
+            Sequence(
+                "MODEL",
+                Ref("ObjectReferenceSegment"),
+                Ref("CommentGrammar", optional=True),
+                Sequence("AS", Ref("ObjectReferenceSegment"), optional=True),
+            ),
+            Sequence(
+                Ref.keyword("TABLE", optional=True),
+                Ref("ObjectReferenceSegment"),
+                Ref("CommentGrammar", optional=True),
+                Ref("PartitionSpecGrammar", optional=True),
+                Sequence("AS", Ref("ObjectReferenceSegment"), optional=True),
+                OneOf(
+                    Sequence("WITH", "HISTORY"),
+                    Sequence("WITHOUT", "HISTORY"),
+                    optional=True,
+                ),
+            ),
+        ),
+    )
+
+    match_grammar = Sequence(
+        "ALTER",
+        "SHARE",
+        Ref("SingleIdentifierGrammar"),
+        OneOf(
+            _add_object,
+            Sequence(
+                "REMOVE",
+                OneOf(
+                    Sequence("MATERIALIZED", "VIEW"),
+                    "TABLE",
+                    "SCHEMA",
+                    "VIEW",
+                    "MODEL",
+                ),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence("RENAME", "TO", Ref("ObjectReferenceSegment")),
+            Ref("SetOwnerGrammar"),
+        ),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
@@ -1684,6 +1758,7 @@ class StatementSegment(sparksql.StatementSegment):
             # Unity Catalog
             Ref("AlterCatalogStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
+            Ref("AlterShareStatementSegment"),
             Ref("DropCatalogStatementSegment"),
             Ref("UseCatalogStatementSegment"),
             Ref("AlterVolumeStatementSegment"),
