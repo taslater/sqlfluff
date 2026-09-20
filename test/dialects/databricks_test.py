@@ -59,3 +59,21 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("OPTIMIZE;", id="optimize_without_table"),
+        pytest.param("OPTIMIZE events WHERE;", id="optimize_where_without_predicate"),
+        pytest.param("OPTIMIZE events FULL WHERE;", id="optimize_full_where_without_predicate"),
+        pytest.param("OPTIMIZE events ZORDER BY ();", id="optimize_empty_zorder_list"),
+        pytest.param("OPTIMIZE events ZORDER BY (a, );", id="optimize_zorder_trailing_comma"),
+        pytest.param("VACUUM;", id="vacuum_without_table"),
+        pytest.param("VACUUM t FULL LITE;", id="vacuum_full_and_lite"),
+        pytest.param("VACUUM t DRY RUN FULL;", id="vacuum_dry_run_and_full"),
+    ],
+)
+def test_maintenance_full_mode_rejections(sql: str) -> None:
+    """OPTIMIZE / VACUUM clause boundaries and exclusive FULL/LITE modes."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

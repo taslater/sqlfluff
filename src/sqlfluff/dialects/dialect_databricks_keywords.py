@@ -13,6 +13,7 @@ RESERVED_KEYWORDS = [
     "JOIN",
     "LATERAL",
     "LEFT",
+    "LITE",
     "MINUS",
     "NATURAL",
     "ON",

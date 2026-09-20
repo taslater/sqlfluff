@@ -1616,6 +1616,8 @@ class OptimizeTableStatementSegment(BaseSegment):
     match_grammar = Sequence(
         "OPTIMIZE",
         Ref("TableReferenceSegment"),
+        # The FULL mode is a full-file rewrite (DBR 16.0+).
+        Sequence("FULL", optional=True),
         Sequence(
             "WHERE",
             Ref("ExpressionSegment"),
@@ -1625,6 +1627,34 @@ class OptimizeTableStatementSegment(BaseSegment):
             "ZORDER",
             "BY",
             Bracketed(Delimited(Ref("ColumnReferenceSegment"))),
+            optional=True,
+        ),
+    )
+
+
+class VacuumStatementSegment(sparksql.VacuumStatementSegment):
+    """A `VACUUM` statement, with the FULL and LITE modes.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/delta-vacuum
+    """
+
+    match_grammar: Matchable = Sequence(
+        "VACUUM",
+        OneOf(
+            Ref("QuotedLiteralSegment"),
+            Ref("FileReferenceSegment"),
+            Ref("TableReferenceSegment"),
+        ),
+        OneOf(
+            Sequence(
+                "RETAIN",
+                Ref("NumericLiteralSegment"),
+                Ref("DatetimeUnitSegment"),
+            ),
+            Sequence("DRY", "RUN"),
+            # FULL and LITE are exclusive with each other and with DRY RUN.
+            "FULL",
+            "LITE",
             optional=True,
         ),
     )
