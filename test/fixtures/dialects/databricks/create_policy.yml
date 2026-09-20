@@ -1,0 +1,89 @@
+# YML test files are auto-generated from SQL files and should not be edited by
+# hand. To help enforce this, the "hash" field in the file must match a hash
+# computed by SQLFluff when running the tests. Please run
+# `python test/generate_parse_fixture_yml.py`  to generate them after adding or
+# altering SQL files.
+_hash: e931c4bb5e02efb47cd2d0b7d02178193d38b26610f95e86176e6c4ea1da106b
+file:
+- statement:
+    create_policy_statement:
+    - keyword: CREATE
+    - keyword: POLICY
+    - object_reference:
+        naked_identifier: ssn_mask
+    - keyword: 'ON'
+    - keyword: CATALOG
+    - catalog_reference:
+        naked_identifier: employees
+    - keyword: COLUMN
+    - keyword: MASK
+    - function_name:
+        function_name_identifier: ssn_to_last_nr
+    - keyword: TO
+    - quoted_literal: "'All Users'"
+    - keyword: EXCEPT
+    - quoted_literal: "'HR admins'"
+    - keyword: FOR
+    - keyword: TABLES
+    - keyword: MATCH
+    - keyword: COLUMNS
+    - expression:
+        function:
+          function_name:
+            function_name_identifier: has_tag
+          function_contents:
+            bracketed:
+              start_bracket: (
+              expression:
+                quoted_literal: "'ssn'"
+              end_bracket: )
+    - keyword: AS
+    - naked_identifier: ssn
+    - keyword: 'ON'
+    - keyword: COLUMN
+    - naked_identifier: ssn
+    - keyword: USING
+    - keyword: COLUMNS
+    - bracketed:
+        start_bracket: (
+        expression:
+          numeric_literal: '4'
+        end_bracket: )
+- statement_terminator: ;
+- statement:
+    create_policy_statement:
+    - keyword: CREATE
+    - keyword: POLICY
+    - object_reference:
+        naked_identifier: model_access
+    - keyword: 'ON'
+    - keyword: SCHEMA
+    - database_reference:
+      - naked_identifier: system
+      - dot: .
+      - naked_identifier: ai
+    - keyword: TO
+    - naked_identifier: data_scientists
+    - keyword: EXCEPT
+    - naked_identifier: contractors
+    - keyword: GRANT
+    - access_permission:
+        keyword: EXECUTE
+    - keyword: FOR
+    - keyword: MODEL
+    - keyword: SERVICES
+    - keyword: WHEN
+    - expression:
+        function:
+          function_name:
+            function_name_identifier: has_tag_value
+          function_contents:
+            bracketed:
+            - start_bracket: (
+            - expression:
+                quoted_literal: "'ai.model_creator'"
+            - comma: ','
+            - expression:
+                quoted_literal: "'anthropic'"
+            - end_bracket: )
+- statement_terminator: ;

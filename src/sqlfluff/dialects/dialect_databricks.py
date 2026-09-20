@@ -1467,6 +1467,15 @@ class CreateTableStatementSegment(sparksql.CreateTableStatementSegment):
                 Ref("FlowClauseSegment"),
             ),
             sparksql.CreateTableStatementSegment.match_grammar,
+            # The pipeline statement also allows a plain `CREATE TABLE ...
+            # FLOW ...`; only the non-pipeline form disallows it.
+            # https://docs.databricks.com/aws/en/ldp/developer/ldp-sql-ref-create-table-flow
+            Sequence(
+                "CREATE",
+                Ref("OrRefreshGrammar", optional=True),
+                Ref("TableDefinitionSegment"),
+                Ref("FlowClauseSegment"),
+            ),
         )
     )
 
@@ -3901,12 +3910,159 @@ class RestoreTableStatementSegment(sparksql.RestoreTableStatementSegment):
     )
 
 
+class CreatePolicyStatementSegment(BaseSegment):
+    """A `CREATE POLICY` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-policy
+    """
+
+    type = "create_policy_statement"
+
+    _principal = OneOf(
+        Ref("PrincipalIdentifierSegment"),
+        Ref("QuotedLiteralSegment"),
+    )
+    _target = OneOf(
+        "METASTORE",
+        Sequence("CATALOG", Ref("CatalogReferenceSegment")),
+        Sequence("SCHEMA", Ref("DatabaseReferenceSegment")),
+        Sequence("TABLE", Ref("TableReferenceSegment")),
+    )
+    _when = Sequence("WHEN", Ref("ExpressionSegment"), optional=True)
+    _for_tables = Sequence("FOR", "TABLES", optional=True)
+    _except = Sequence("EXCEPT", Delimited(_principal), optional=True)
+    _to = Sequence("TO", Delimited(_principal))
+    _using_columns = Sequence(
+        "USING",
+        "COLUMNS",
+        Bracketed(Delimited(Ref("ExpressionSegment"))),
+        optional=True,
+    )
+    _match_columns = Sequence(
+        "MATCH",
+        "COLUMNS",
+        Delimited(
+            Sequence(
+                Ref("ExpressionSegment"),
+                Sequence("AS", Ref("SingleIdentifierGrammar"), optional=True),
+            )
+        ),
+        optional=True,
+    )
+    _body = OneOf(
+        # row_filter_body
+        Sequence(
+            "ROW",
+            "FILTER",
+            Ref("FunctionNameSegment"),
+            _to,
+            _except,
+            _for_tables,
+            _when,
+            _match_columns,
+            _using_columns,
+        ),
+        # column_mask_body
+        Sequence(
+            "COLUMN",
+            "MASK",
+            Ref("FunctionNameSegment"),
+            _to,
+            _except,
+            _for_tables,
+            _when,
+            _match_columns,
+            Sequence("ON", "COLUMN", Ref("SingleIdentifierGrammar"), optional=True),
+            _using_columns,
+        ),
+        # grant_policy_body
+        Sequence(
+            _to,
+            _except,
+            "GRANT",
+            Delimited(Ref("AccessPermissionSegment")),
+            "FOR",
+            OneOf(
+                Sequence("MODEL", "SERVICES"),
+                Ref("SingleIdentifierGrammar"),
+            ),
+            _when,
+        ),
+    )
+
+    match_grammar = Sequence(
+        "CREATE",
+        Ref("OrReplaceGrammar", optional=True),
+        "POLICY",
+        Ref("ObjectReferenceSegment"),
+        "ON",
+        _target,
+        Ref("CommentGrammar", optional=True),
+        _body,
+    )
+
+
+class ProcedureParameterGrammar(BaseSegment):
+    """A parameter of a `CREATE PROCEDURE` statement."""
+
+    type = "procedure_parameter"
+    match_grammar = Sequence(
+        Ref.keyword("INOUT", optional=True),
+        Ref.keyword("OUT", optional=True),
+        Ref.keyword("IN", optional=True),
+        Ref("SingleIdentifierGrammar"),
+        Ref("DatatypeSegment"),
+        Sequence(
+            "DEFAULT",
+            Ref("ExpressionSegment"),
+            optional=True,
+        ),
+        Ref("CommentGrammar", optional=True),
+    )
+
+
+class CreateProcedureStatementSegment(BaseSegment):
+    """A `CREATE PROCEDURE` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-procedure
+    """
+
+    type = "create_procedure_statement"
+    match_grammar = Sequence(
+        "CREATE",
+        Ref("OrReplaceGrammar", optional=True),
+        "PROCEDURE",
+        Ref("IfNotExistsGrammar", optional=True),
+        Ref("ObjectReferenceSegment"),
+        Bracketed(
+            Delimited(Ref("ProcedureParameterGrammar")),
+            optional=True,
+        ),
+        AnyNumberOf(
+            Sequence("LANGUAGE", OneOf("SQL", "PYTHON", "SCALA", "JAVA")),
+            Sequence("SQL", "SECURITY", OneOf("INVOKER", "DEFINER")),
+            Sequence("NOT", "DETERMINISTIC"),
+            Ref("CommentGrammar"),
+            Sequence(
+                "DEFAULT",
+                "COLLATION",
+                Ref("SingleIdentifierGrammar"),
+            ),
+            Sequence("MODIFIES", "SQL", "DATA"),
+        ),
+        "AS",
+        Ref("StatementSegment"),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
     match_grammar = sparksql.StatementSegment.match_grammar.copy(
         # Segments defined in Databricks SQL dialect
         insert=[
+            Ref("CreatePolicyStatementSegment"),
+            Ref("CreateProcedureStatementSegment"),
             Ref("DropConnectionStatementSegment"),
             Ref("DropCredentialStatementSegment"),
             Ref("DropExternalLocationStatementSegment"),

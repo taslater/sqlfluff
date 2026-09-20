@@ -24,6 +24,14 @@ RESERVED_KEYWORDS = [
 ]
 
 UNRESERVED_KEYWORDS = [
+    "DEFINER",
+    "DETERMINISTIC",
+    "INOUT",
+    "INVOKER",
+    "MODIFIES",
+    "OUT",
+    "SECURITY",
+    "SERVICES",
     "ANONYMOUS",
     "CATALOGS",
     "CONNECTIONS",

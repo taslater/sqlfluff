@@ -248,17 +248,13 @@ def test_view_requires_bound_clauses(sql: str) -> None:
             id="flow_sequence_by_without_replace_using",
         ),
         pytest.param(
-            "CREATE TABLE t FLOW INSERT BY NAME SELECT * FROM STREAM s;",
-            id="flow_without_streaming",
-        ),
-        pytest.param(
             "CREATE PRIVATE TABLE t FLOW INSERT BY NAME SELECT * FROM STREAM s;",
             id="flow_with_private_without_streaming",
         ),
     ],
 )
 def test_inline_flow_requires_streaming_and_a_bound_spec(sql: str) -> None:
-    """An inline FLOW is only valid on a streaming table, and its spec binds.
+    """An inline FLOW's spec binds, and PRIVATE still requires STREAMING.
 
     `REPLACE USING (...)` and `SEQUENCE BY` are required together, and the
     append form takes `BY NAME`. These are the boundaries #8509 missed for the
@@ -725,4 +721,17 @@ def test_drop_uc_rejections(sql: str) -> None:
 )
 def test_insert_and_restore_rejections(sql: str) -> None:
     """INSERT/REPLACE ON and RESTORE boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("CREATE POLICY p ON CATALOG c;", id="policy_without_body"),
+        pytest.param("CREATE PROCEDURE p;", id="procedure_without_body"),
+        pytest.param("CREATE TABLE t FLOW INSERT BY NAME;", id="table_flow_without_query"),
+    ],
+)
+def test_policy_procedure_table_flow_rejections(sql: str) -> None:
+    """CREATE POLICY / PROCEDURE / pipeline TABLE FLOW boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
