@@ -59,3 +59,21 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("CREATE SHARE;", id="share_without_name"),
+        pytest.param("CREATE SHARE COMMENT 'x';", id="share_without_name_with_comment"),
+        pytest.param("CREATE SHARE s COMMENT;", id="share_without_comment_value"),
+        pytest.param("CREATE RECIPIENT USING ID 'x';", id="recipient_without_name"),
+        pytest.param("CREATE RECIPIENT r USING ID;", id="recipient_without_sharing_id"),
+        pytest.param("CREATE RECIPIENT r PROPERTIES ();", id="recipient_empty_properties"),
+        pytest.param("CREATE RECIPIENT r PROPERTIES (k =);", id="recipient_without_property_value"),
+        pytest.param("CREATE RECIPIENT r COMMENT;", id="recipient_without_comment_value"),
+    ],
+)
+def test_create_share_recipient_rejections(sql: str) -> None:
+    """CREATE SHARE / RECIPIENT boundaries a valid-parse fixture cannot express."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

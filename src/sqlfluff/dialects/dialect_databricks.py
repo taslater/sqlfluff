@@ -1675,6 +1675,56 @@ class MergeInsertClauseSegment(sparksql.MergeInsertClauseSegment):
     )
 
 
+class CreateShareStatementSegment(BaseSegment):
+    """A `CREATE SHARE` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-share
+    """
+
+    type = "create_share_statement"
+
+    match_grammar = Sequence(
+        "CREATE",
+        "SHARE",
+        Ref("IfNotExistsGrammar", optional=True),
+        Ref("SingleIdentifierGrammar"),
+        Ref("CommentGrammar", optional=True),
+    )
+
+
+class CreateRecipientStatementSegment(BaseSegment):
+    """A `CREATE RECIPIENT` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-recipient
+    """
+
+    type = "create_recipient_statement"
+
+    match_grammar = Sequence(
+        "CREATE",
+        "RECIPIENT",
+        Ref("IfNotExistsGrammar", optional=True),
+        Ref("SingleIdentifierGrammar"),
+        Sequence("USING", "ID", Ref("QuotedLiteralSegment"), optional=True),
+        Ref("CommentGrammar", optional=True),
+        Sequence(
+            "PROPERTIES",
+            Bracketed(
+                Delimited(
+                    Sequence(
+                        # A property key may be dotted; the equals sign is
+                        # optional, per the reference.
+                        Ref("ObjectReferenceSegment"),
+                        Ref("EqualsSegment", optional=True),
+                        Ref("QuotedLiteralSegment"),
+                    )
+                )
+            ),
+            optional=True,
+        ),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
@@ -1684,6 +1734,8 @@ class StatementSegment(sparksql.StatementSegment):
             # Unity Catalog
             Ref("AlterCatalogStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
+            Ref("CreateShareStatementSegment"),
+            Ref("CreateRecipientStatementSegment"),
             Ref("DropCatalogStatementSegment"),
             Ref("UseCatalogStatementSegment"),
             Ref("AlterVolumeStatementSegment"),
