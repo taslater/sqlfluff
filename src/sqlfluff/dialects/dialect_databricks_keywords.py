@@ -34,6 +34,7 @@ UNRESERVED_KEYWORDS = [
     "COLLATION",
     "CONNECTION",
     "CRON",
+    "DROPPED",
     "DAY",
     "DEFAULT",
     "DEEP",

@@ -309,4 +309,12 @@ def test_maintenance_full_mode_rejections(sql: str) -> None:
             id="schema_evolution_without_into",
 def test_merge_schema_evolution_rejections(sql: str) -> None:
     """WITH SCHEMA EVOLUTION is only valid before INTO."""
+        pytest.param("ALTER CATALOG c DEFAULT COLLATION;", id="catalog_collation_without_value"),
+        pytest.param("ALTER CATALOG c SET TAGS ();", id="catalog_empty_tags"),
+        pytest.param("ALTER CATALOG c SET MANAGED LOCATION;", id="catalog_managed_location_without_path"),
+        pytest.param("ALTER CATALOG c RETAIN DROPPED TO 1;", id="catalog_retain_dropped_without_unit"),
+        pytest.param("ALTER SCHEMA s SET DBPROPERTIES ();", id="schema_empty_dbproperties"),
+        pytest.param("ALTER SCHEMA s DEFAULT COLLATION;", id="schema_collation_without_value"),
+def test_alter_catalog_schema_rejections(sql: str) -> None:
+    """ALTER CATALOG / SCHEMA clause boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
