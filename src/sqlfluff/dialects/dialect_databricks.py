@@ -688,6 +688,95 @@ class TableExpressionSegment(sparksql.TableExpressionSegment):
     )
 
 
+class AccessObjectSegment(ansi.AccessObjectSegment):
+    """A securable object.
+
+    Widens the ANSI list to the Unity Catalog securables it does not carry:
+    a share, a connection, a clean room, an external location or metadata, a
+    procedure, and a `[STORAGE | SERVICE] CREDENTIAL`. CATALOG is the one
+    securable whose name the reference brackets, so `ON CATALOG` is legal.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-privileges
+    """
+
+    match_grammar = ansi.AccessObjectSegment.match_grammar.copy(
+        insert=[
+            # The inherited alternative still binds `ON CATALOG c`: OneOf
+            # takes the longest match, and the named form is longer.
+            # `Ref.keyword` rather than a bare string: elements added by
+            # `copy()` are past the point where the dialect expands strings
+            # into keyword references.
+            Ref.keyword("CATALOG"),
+            Sequence(
+                Ref.keyword("CLEAN"),
+                Ref.keyword("ROOM"),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                Ref.keyword("CONNECTION"),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                Ref.keyword("EXTERNAL"),
+                Ref.keyword("LOCATION"),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                Ref.keyword("EXTERNAL"),
+                Ref.keyword("METADATA"),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                Ref.keyword("PROCEDURE"),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                Ref.keyword("SHARE"),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                Ref.keyword("STORAGE"),
+                Ref.keyword("CREDENTIAL"),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                Ref.keyword("SERVICE"),
+                Ref.keyword("CREDENTIAL"),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                Ref.keyword("CREDENTIAL"),
+                Ref("ObjectReferenceSegment"),
+            ),
+        ],
+    )
+
+
+class AccessPermissionsSegment(ansi.AccessPermissionsSegment):
+    """A set of privileges.
+
+    The reference gives `privilege_types` as exclusive alternatives --
+    `{ ALL PRIVILEGES | privilege_type [, ...] }` -- so a list may not open
+    with ALL PRIVILEGES. The exclude on the list's first element is what
+    binds that; both spellings of the alternative stay accepted.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/security-grant
+    """
+
+    match_grammar = OneOf(
+        Sequence(Ref.keyword("ALL"), Ref.keyword("PRIVILEGES", optional=True)),
+        Delimited(
+            Ref(
+                "AccessPermissionSegment",
+                exclude=Sequence(
+                    Ref.keyword("ALL"), Ref.keyword("PRIVILEGES", optional=True)
+                ),
+            ),
+            terminators=["ON"],
+        ),
+    )
+
+
 class CatalogReferenceSegment(ansi.ObjectReferenceSegment):
     """A reference to a catalog.
 

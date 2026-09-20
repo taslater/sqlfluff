@@ -76,3 +76,43 @@ def test_show_grants_requires_a_securable(sql: str) -> None:
     optional.
     """
     assert _violations(sql), f"Expected a parse failure for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param(
+            "SHOW GRANTS ON STORAGE sc;\n",
+            id="storage_without_credential",
+        ),
+        pytest.param(
+            "SHOW GRANTS ON STORAGE CREDENTIAL;\n",
+            id="credential_without_name",
+        ),
+        pytest.param(
+            "SHOW GRANTS ON SERVICE sc;\n",
+            id="service_without_credential",
+        ),
+        pytest.param(
+            "GRANT ALL PRIVILEGES, SELECT ON TABLE t TO p;\n",
+            id="all_privileges_in_list",
+        ),
+        pytest.param(
+            "GRANT SELECT, ALL PRIVILEGES ON TABLE t TO p;\n",
+            id="all_privileges_later_in_list",
+        ),
+        pytest.param(
+            "GRANT ALL, SELECT ON TABLE t TO p;\n",
+            id="bare_all_in_list",
+        ),
+    ],
+)
+def test_privileges_bind_their_clauses(sql: str) -> None:
+    """Privilege forms bind, in both directions.
+
+    A credential is `[ STORAGE | SERVICE ] CREDENTIAL name`, never the scope
+    keyword alone or without a name, and `privilege_types` is
+    `{ ALL PRIVILEGES | privilege_type [, ...] }`, so ALL PRIVILEGES cannot
+    open or join a list.
+    """
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
