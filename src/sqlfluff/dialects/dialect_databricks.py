@@ -679,6 +679,33 @@ class TableExpressionSegment(sparksql.TableExpressionSegment):
     )
 
 
+class FromExpressionElementSegment(sparksql.FromExpressionElementSegment):
+    """A table in a FROM clause, with Databricks `STREAM` support.
+
+    `STREAM` marks a streaming read (`FROM STREAM read_files(…)`,
+    `FROM STREAM source`), but it may only be a prefix keyword when a table
+    expression follows it. Making it a plain optional prefix, as the shared
+    grammar allows, makes a table named `stream` unparsable.
+    """
+
+    match_grammar = sparksql.FromExpressionElementSegment.match_grammar.copy(
+        insert=[
+            OneOf(
+                Sequence(
+                    "STREAM",
+                    OptionallyBracketed(Ref("TableExpressionSegment")),
+                ),
+                OptionallyBracketed(Ref("TableExpressionSegment")),
+            )
+        ],
+        at=0,
+        remove=[
+            Ref("PreTableFunctionKeywordsGrammar", optional=True),
+            OptionallyBracketed(Ref("TableExpressionSegment")),
+        ],
+    )
+
+
 class CatalogReferenceSegment(ansi.ObjectReferenceSegment):
     """A reference to a catalog.
 
