@@ -629,3 +629,33 @@ def test_alter_group_rejections(sql: str) -> None:
 def test_scripting_rejections(sql: str) -> None:
     """SQL scripting boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("FSCK REPAIR TABLE;", id="fsck_without_table"),
+        pytest.param("FSCK REPAIR TABLE t METADATA;", id="fsck_metadata_without_only"),
+        pytest.param("REORG TABLE events;", id="reorg_without_apply"),
+        pytest.param("REORG TABLE events APPLY ();", id="reorg_empty_purge"),
+        pytest.param("CACHE SELECT FROM boxes;", id="cache_select_without_column"),
+        pytest.param("CACHE SELECT a, FROM boxes;", id="cache_select_trailing_comma"),
+        pytest.param("DROP BLOOMFILTER INDEX;", id="bloom_without_table"),
+        pytest.param("DROP BLOOMFILTER INDEX ON TABLE t FOR COLUMNS ();", id="bloom_empty_columns"),
+        pytest.param("REPAIR TABLE;", id="repair_without_table"),
+        pytest.param("REFRESH MATERIALIZED VIEW;", id="refresh_mv_without_table"),
+        pytest.param("REFRESH FOREIGN;", id="refresh_foreign_without_type"),
+        pytest.param("REFRESH FUNCTION;", id="refresh_function_without_name"),
+        pytest.param("UNDROP TABLE;", id="undrop_without_name"),
+        pytest.param("SYNC TABLE main.t FROM;", id="sync_without_source"),
+        pytest.param("LIST;", id="list_without_url"),
+        pytest.param("CALL (1);", id="call_without_name"),
+        pytest.param("SET RECIPIENT;", id="set_recipient_without_name"),
+        pytest.param("ANALYZE TABLE COMPUTE STORAGE METRICS;", id="analyze_metrics_without_table"),
+        pytest.param("SET TAG ON TABLE t;", id="set_tag_without_key"),
+        pytest.param("UNSET TAG ON TABLE t;", id="unset_tag_without_key"),
+    ],
+)
+def test_maintenance_and_utility_rejections(sql: str) -> None:
+    """Delta maintenance and auxiliary statement boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"

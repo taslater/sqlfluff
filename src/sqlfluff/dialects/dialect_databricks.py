@@ -182,6 +182,20 @@ databricks_dialect.insert_lexer_matchers(
 
 
 databricks_dialect.add(
+    # A bare table reference for REFRESH, which must not swallow the TABLE or
+    # FUNCTION clause keywords (both are legal identifier spellings).
+    RefreshTableReferenceSegment=Delimited(
+        OneOf(
+            Ref("BackQuotedIdentifierSegment"),
+            RegexParser(
+                r"[A-Z_][A-Z0-9_]*",
+                IdentifierSegment,
+                type="naked_identifier",
+                anti_template=r"TABLE|FUNCTION|FOREIGN",
+            ),
+        ),
+        delimiter=Ref("ObjectReferenceDelimiterGrammar"),
+    ),
     RetainDroppedClauseGrammar=Sequence(
         Ref.keyword("SET", optional=True),
         "RETAIN",
@@ -486,8 +500,10 @@ databricks_dialect.replace(
         Ref("ExpressionSegment"),
         Ref("NamedArgumentSegment"),
     ),
+    # RECIPIENT is a clause keyword on `SET RECIPIENT`, so it cannot also be a
+    # runtime property name (which would accept the name-less form).
     PropertiesNakedIdentifierSegment=RegexParser(
-        r"[A-Z_][A-Z0-9_]*",
+        r"(?!RECIPIENT)[A-Z_][A-Z0-9_]*",
         IdentifierSegment,
         type="properties_naked_identifier",
     ),
@@ -1087,9 +1103,14 @@ class UseCatalogStatementSegment(BaseSegment):
 
     type = "use_catalog_statement"
     match_grammar = Sequence(
-        "USE",
+        OneOf("USE", "SET"),
         "CATALOG",
-        Ref("CatalogReferenceSegment"),
+        OneOf(
+            Ref("CatalogReferenceSegment"),
+            Ref("QuotedLiteralSegment"),
+            Ref("IdentifierClauseSegment"),
+            optional=True,
+        ),
     )
 
 
@@ -1676,6 +1697,15 @@ class UnsetTagStatementSegment(BaseSegment):
                 "COLUMN",
                 Ref("ColumnReferenceSegment"),
             ),
+            Sequence(
+                "EXTERNAL",
+                "METADATA",
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                OneOf("FUNCTION", "PROCEDURE"),
+                Ref("FunctionNameSegment"),
+            ),
         ),
         OneOf(Ref("BackQuotedIdentifierSegment"), Ref("NakedIdentifierSegment")),
     )
@@ -1711,10 +1741,26 @@ class TagStatementSegment(BaseSegment):
                 "COLUMN",
                 Ref("ColumnReferenceSegment"),
             ),
+            Sequence(
+                "EXTERNAL",
+                "METADATA",
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                OneOf("FUNCTION", "PROCEDURE"),
+                Ref("FunctionNameSegment"),
+            ),
         ),
-        OneOf(Ref("BackQuotedIdentifierSegment"), Ref("NakedIdentifierSegment")),
-        Ref("EqualsSegment"),
-        OneOf(Ref("BackQuotedIdentifierSegment"), Ref("NakedIdentifierSegment")),
+        Ref("SingleIdentifierGrammar"),
+        Sequence(
+            Ref("EqualsSegment"),
+            OneOf(
+                Ref("QuotedLiteralSegment"),
+                Ref("BackQuotedIdentifierSegment"),
+                Ref("NakedIdentifierSegment"),
+            ),
+            optional=True,
+        ),
     )
 
 
@@ -3035,12 +3081,345 @@ class ScriptingBlockStatementSegment(BaseSegment):
     )
 
 
+class FsckRepairTableStatementSegment(BaseSegment):
+    """An `FSCK REPAIR TABLE` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/delta-fsck
+    """
+
+    type = "fsck_repair_table_statement"
+    match_grammar = Sequence(
+        "FSCK",
+        "REPAIR",
+        "TABLE",
+        Ref("TableReferenceSegment"),
+        OneOf(
+            Sequence("METADATA", "ONLY"),
+            Sequence("VERIFY", "ALL", "FILES"),
+            Sequence(
+                "VERIFY",
+                "FILES",
+                "MODIFIED",
+                "BETWEEN",
+                OneOf(
+                    Ref("QuotedLiteralSegment"),
+                    Ref("FunctionSegment"),
+                    Ref("ColumnReferenceSegment"),
+                ),
+                "AND",
+                OneOf(
+                    Ref("QuotedLiteralSegment"),
+                    Ref("FunctionSegment"),
+                    Ref("ColumnReferenceSegment"),
+                ),
+            ),
+            optional=True,
+        ),
+        Sequence("DRY", "RUN", optional=True),
+    )
+
+
+class ReorgTableStatementSegment(BaseSegment):
+    """A `REORG TABLE` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/delta-reorg-table
+    """
+
+    type = "reorg_table_statement"
+    match_grammar = Sequence(
+        "REORG",
+        Ref.keyword("TABLE", optional=True),
+        Ref("TableReferenceSegment"),
+        Sequence("WHERE", Ref("ExpressionSegment"), optional=True),
+        "APPLY",
+        Bracketed(
+            OneOf(
+                "PURGE",
+                "CHECKPOINT",
+                Sequence(
+                    "UPGRADE",
+                    "UNIFORM",
+                    Bracketed(
+                        Sequence(
+                            "ICEBERG_COMPAT_VERSION",
+                            Ref("EqualsSegment"),
+                            Ref("NumericLiteralSegment"),
+                        )
+                    ),
+                ),
+                Sequence(
+                    "SET",
+                    "PARQUET",
+                    Bracketed(
+                        Sequence(
+                            "FORMAT_VERSION",
+                            Ref("EqualsSegment"),
+                            Ref("QuotedLiteralSegment"),
+                        )
+                    ),
+                ),
+            )
+        ),
+    )
+
+
+class CacheSelectStatementSegment(BaseSegment):
+    """A `CACHE SELECT` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/delta-cache
+    """
+
+    type = "cache_select_statement"
+    match_grammar = Sequence(
+        "CACHE",
+        "SELECT",
+        Delimited(
+            OneOf(
+                Ref("WildcardExpressionSegment"),
+                Ref("ColumnReferenceSegment"),
+            )
+        ),
+        "FROM",
+        Ref("TableReferenceSegment"),
+        Sequence("WHERE", Ref("ExpressionSegment"), optional=True),
+    )
+
+
+class DropBloomFilterIndexStatementSegment(BaseSegment):
+    """A `DROP BLOOMFILTER INDEX` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/delta-drop-bloomfilter-index
+    """
+
+    type = "drop_bloom_filter_index_statement"
+    match_grammar = Sequence(
+        "DROP",
+        "BLOOMFILTER",
+        "INDEX",
+        "ON",
+        Ref.keyword("TABLE", optional=True),
+        Ref("TableReferenceSegment"),
+        Sequence(
+            "FOR",
+            "COLUMNS",
+            Bracketed(Delimited(Ref("ColumnReferenceSegment"))),
+            optional=True,
+        ),
+    )
+
+
+class RepairTableStatementSegment(BaseSegment):
+    """A `[MSCK] REPAIR TABLE` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-repair-table
+    """
+
+    type = "repair_table_statement"
+    match_grammar = Sequence(
+        Ref.keyword("MSCK", optional=True),
+        "REPAIR",
+        "TABLE",
+        Ref("TableReferenceSegment"),
+        OneOf(
+            Sequence(OneOf("ADD", "DROP", "SYNC"), "PARTITIONS"),
+            Sequence("SYNC", "METADATA"),
+            optional=True,
+        ),
+    )
+
+
+class RefreshStatementSegment(sparksql.RefreshStatementSegment):
+    """A `REFRESH` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-refresh-full
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-refresh-foreign
+    """
+
+    type = "refresh_statement"
+    match_grammar = Sequence(
+        "REFRESH",
+        OneOf(
+            Sequence(
+                "FOREIGN",
+                OneOf(
+                    Sequence("CATALOG", Ref("CatalogReferenceSegment")),
+                    Sequence(
+                        "SCHEMA",
+                        Ref("DatabaseReferenceSegment"),
+                        Sequence("RESOLVE", "DBFS", "LOCATION", optional=True),
+                    ),
+                    Sequence(
+                        "TABLE",
+                        Ref("TableReferenceSegment"),
+                        Sequence("RESOLVE", "DBFS", "LOCATION", optional=True),
+                    ),
+                ),
+            ),
+            Sequence(
+                OneOf(
+                    Sequence("MATERIALIZED", "VIEW"),
+                    Sequence("STREAMING", "TABLE"),
+                    "TABLE",
+                ),
+                Ref("TableReferenceSegment"),
+                Ref.keyword("FULL", optional=True),
+                Sequence("WHERE", Ref("ExpressionSegment"), optional=True),
+                OneOf("SYNC", "ASYNC", optional=True),
+            ),
+            Sequence(
+                Ref("RefreshTableReferenceSegment"),
+                Ref.keyword("FULL", optional=True),
+                Sequence("WHERE", Ref("ExpressionSegment"), optional=True),
+                OneOf("SYNC", "ASYNC", optional=True),
+            ),
+            Sequence("FUNCTION", Ref("FunctionNameSegment")),
+            Ref("QuotedLiteralSegment"),
+        ),
+    )
+
+
+class UndropStatementSegment(BaseSegment):
+    """An `UNDROP` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-undrop-table
+    """
+
+    type = "undrop_statement"
+    match_grammar = Sequence(
+        "UNDROP",
+        OneOf(
+            Sequence("MATERIALIZED", "VIEW"),
+            "TABLE",
+        ),
+        OneOf(
+            Sequence("WITH", "ID", Ref("NumericLiteralSegment")),
+            Ref("TableReferenceSegment"),
+        ),
+    )
+
+
+class SyncStatementSegment(BaseSegment):
+    """A `SYNC` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-aux-sync
+    """
+
+    type = "sync_statement"
+    match_grammar = Sequence(
+        "SYNC",
+        OneOf(
+            Sequence(
+                "SCHEMA",
+                Ref("DatabaseReferenceSegment"),
+                Sequence("AS", "EXTERNAL", optional=True),
+                "FROM",
+                Ref("DatabaseReferenceSegment"),
+            ),
+            Sequence(
+                "TABLE",
+                Ref("TableReferenceSegment"),
+                Sequence("AS", "EXTERNAL", optional=True),
+                "FROM",
+                Ref("TableReferenceSegment"),
+            ),
+        ),
+        Sequence(
+            Ref.keyword("SET", optional=True),
+            "OWNER",
+            Ref("PrincipalIdentifierSegment"),
+            optional=True,
+        ),
+        Sequence("DRY", "RUN", optional=True),
+    )
+
+
+class ListStatementSegment(BaseSegment):
+    """A `LIST` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-aux-list
+    """
+
+    type = "list_statement"
+    match_grammar = Sequence(
+        "LIST",
+        Ref("QuotedLiteralSegment"),
+        Sequence(
+            "WITH",
+            Bracketed(
+                Sequence(
+                    "CREDENTIAL",
+                    Ref("ObjectReferenceSegment"),
+                )
+            ),
+            optional=True,
+        ),
+        Sequence("LIMIT", Ref("NumericLiteralSegment"), optional=True),
+    )
+
+
+class CallStatementSegment(BaseSegment):
+    """A `CALL` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-aux-call
+    """
+
+    type = "call_statement"
+    match_grammar = Sequence("CALL", Ref("FunctionSegment"))
+
+
+class SetRecipientStatementSegment(BaseSegment):
+    """A `SET RECIPIENT` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-aux-set-recipient
+    """
+
+    type = "set_recipient_statement"
+    match_grammar = Sequence("SET", "RECIPIENT", Ref("ObjectReferenceSegment"))
+
+
+class AnalyzeStorageMetricsStatementSegment(BaseSegment):
+    """An `ANALYZE TABLE ... COMPUTE STORAGE METRICS` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-aux-analyze-compute-storage-metrics
+    """
+
+    type = "analyze_storage_metrics_statement"
+    match_grammar = Sequence(
+        "ANALYZE",
+        "TABLE",
+        Ref("TableReferenceSegment"),
+        "COMPUTE",
+        "STORAGE",
+        "METRICS",
+        Sequence(
+            "USING",
+            "INVENTORY",
+            "LOCATION",
+            Ref("QuotedLiteralSegment"),
+            "CONF",
+            Ref("QuotedLiteralSegment"),
+            optional=True,
+        ),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
     match_grammar = sparksql.StatementSegment.match_grammar.copy(
         # Segments defined in Databricks SQL dialect
         insert=[
+            Ref("FsckRepairTableStatementSegment"),
+            Ref("ReorgTableStatementSegment"),
+            Ref("CacheSelectStatementSegment"),
+            Ref("DropBloomFilterIndexStatementSegment"),
+            Ref("RepairTableStatementSegment"),
+            Ref("UndropStatementSegment"),
+            Ref("SyncStatementSegment"),
+            Ref("ListStatementSegment"),
+            Ref("CallStatementSegment"),
+            Ref("SetRecipientStatementSegment"),
+            Ref("AnalyzeStorageMetricsStatementSegment"),
             Ref("ScriptingBlockStatementSegment"),
             Ref("ScriptingDeclareStatementSegment"),
             Ref("ScriptingIfStatementSegment"),

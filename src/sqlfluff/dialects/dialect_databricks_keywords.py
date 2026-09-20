@@ -4,6 +4,8 @@ https://docs.databricks.com/sql/language-manual/sql-ref-reserved-words.html
 """
 
 RESERVED_KEYWORDS = [
+    "RECIPIENT",
+    "FOREIGN",
     "DO",
     "ANTI",
     "CROSS",
@@ -22,6 +24,28 @@ RESERVED_KEYWORDS = [
 ]
 
 UNRESERVED_KEYWORDS = [
+    "BETWEEN",
+    "APPLY",
+    "ASYNC",
+    "BLOOMFILTER",
+    "CALL",
+    "CHECKPOINT",
+    "CONF",
+    "DBFS",
+    "EXTERNAL",
+    "FORMAT_VERSION",
+    "FSCK",
+    "ICEBERG_COMPAT_VERSION",
+    "INVENTORY",
+    "MODIFIED",
+    "PARQUET",
+    "PURGE",
+    "REORG",
+    "RESOLVE",
+    "SYNC",
+    "UNDROP",
+    "UPGRADE",
+    "VERIFY",
     "FOR",
     "ASENSITIVE",
     "ATOMIC",
