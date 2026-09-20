@@ -1252,22 +1252,31 @@ class SemiStructuredAccessorSegment(BaseSegment):
         OneOf(
             Ref("NakedSemiStructuredElementSegment"),
             Bracketed(Ref("QuotedSemiStructuredElementSegment"), bracket_type="square"),
+            # A delimited identifier and the `[ * ]` wildcard.
+            Ref("BackQuotedIdentifierSegment"),
+            Bracketed(Ref("StarSegment"), bracket_type="square"),
         ),
         Ref("ArrayAccessorSegment", optional=True),
         AnyNumberOf(
-            Sequence(
-                OneOf(
-                    # Can be delimited by dots or colons
-                    Ref("DotSegment"),
-                    Ref("ColonSegment"),
-                ),
-                OneOf(
-                    Ref("NakedSemiStructuredElementSegment"),
-                    Bracketed(
-                        Ref("QuotedSemiStructuredElementSegment"), bracket_type="square"
+            OneOf(
+                Sequence(
+                    OneOf(
+                        # Can be delimited by dots or colons
+                        Ref("DotSegment"),
+                        Ref("ColonSegment"),
                     ),
+                    OneOf(
+                        Ref("NakedSemiStructuredElementSegment"),
+                        Bracketed(
+                            Ref("QuotedSemiStructuredElementSegment"),
+                            bracket_type="square",
+                        ),
+                        Ref("BackQuotedIdentifierSegment"),
+                    ),
+                    allow_gaps=True,
                 ),
-                allow_gaps=True,
+                # `[ * ]` may follow an element directly, with no delimiter.
+                Bracketed(Ref("StarSegment"), bracket_type="square"),
             ),
             Ref("ArrayAccessorSegment", optional=True),
             allow_gaps=True,
