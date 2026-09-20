@@ -1675,6 +1675,62 @@ class MergeInsertClauseSegment(sparksql.MergeInsertClauseSegment):
     )
 
 
+class AlterRecipientStatementSegment(BaseSegment):
+    """An `ALTER RECIPIENT` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-alter-recipient
+    """
+
+    type = "alter_recipient_statement"
+
+    match_grammar = Sequence(
+        "ALTER",
+        "RECIPIENT",
+        Ref("SingleIdentifierGrammar"),
+        OneOf(
+            Sequence("RENAME", "TO", Ref("ObjectReferenceSegment")),
+            Ref("SetOwnerGrammar"),
+            Sequence(
+                "SET",
+                "PROPERTIES",
+                Bracketed(
+                    Delimited(
+                        Sequence(
+                            Ref("ObjectReferenceSegment"),
+                            Ref("EqualsSegment", optional=True),
+                            Ref("QuotedLiteralSegment"),
+                        )
+                    )
+                ),
+            ),
+            Sequence(
+                "UNSET",
+                "PROPERTIES",
+                Ref("BracketedPropertyNameListGrammar"),
+            ),
+        ),
+    )
+
+
+class AlterProviderStatementSegment(BaseSegment):
+    """An `ALTER PROVIDER` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-alter-provider
+    """
+
+    type = "alter_provider_statement"
+
+    match_grammar = Sequence(
+        "ALTER",
+        "PROVIDER",
+        Ref("SingleIdentifierGrammar"),
+        OneOf(
+            Sequence("RENAME", "TO", Ref("ObjectReferenceSegment")),
+            Ref("SetOwnerGrammar"),
+        ),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
@@ -1684,6 +1740,8 @@ class StatementSegment(sparksql.StatementSegment):
             # Unity Catalog
             Ref("AlterCatalogStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
+            Ref("AlterRecipientStatementSegment"),
+            Ref("AlterProviderStatementSegment"),
             Ref("DropCatalogStatementSegment"),
             Ref("UseCatalogStatementSegment"),
             Ref("AlterVolumeStatementSegment"),

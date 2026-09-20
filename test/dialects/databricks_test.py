@@ -59,3 +59,16 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("ALTER RECIPIENT r SET PROPERTIES ();", id="recipient_empty_properties"),
+        pytest.param("ALTER RECIPIENT r UNSET PROPERTIES ();", id="recipient_empty_unset_properties"),
+        pytest.param("ALTER PROVIDER p RENAME TO;", id="provider_rename_without_value"),
+    ],
+)
+def test_alter_recipient_provider_rejections(sql: str) -> None:
+    """ALTER RECIPIENT / PROVIDER boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
