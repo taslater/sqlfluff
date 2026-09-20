@@ -33,6 +33,7 @@ UNRESERVED_KEYWORDS = [
     "CONNECTION",
     "CRON",
     "DAY",
+    "DEFAULT",
     "DEEP",
     "DROPPED",
     "DEFAULT",

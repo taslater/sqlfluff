@@ -290,4 +290,9 @@ def test_create_connection_location_rejections(sql: str) -> None:
             id="without_body",
 def test_create_function_characteristic_rejections(sql: str) -> None:
     """CREATE FUNCTION characteristic boundaries."""
+            "CREATE TABLE t (a INT) DEFAULT COLLATION;",
+            "CREATE TABLE t (a INT) LOCATION 'x' WITH (CREDENTIAL);",
+            id="location_without_credential_name",
+def test_create_table_clause_rejections(sql: str) -> None:
+    """CREATE TABLE clause boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
