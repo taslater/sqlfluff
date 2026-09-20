@@ -243,4 +243,10 @@ def test_create_catalog_requires_bound_clauses(sql: str) -> None:
             id="files_and_pattern",
 def test_copy_into_rejections(sql: str) -> None:
     """COPY INTO clause boundaries that a valid-parse fixture cannot express."""
+            "ALTER TABLE RENAME TO t2;",
+            id="no_table_name",
+            "ALTER TABLE t REPLACE PARTITIONED BY WITH;",
+            id="replace_partitioned_without_cluster_by",
+def test_alter_table_rejections(sql: str) -> None:
+    """ALTER TABLE boundaries that a valid-parse fixture cannot express."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
