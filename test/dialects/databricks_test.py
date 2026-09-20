@@ -59,3 +59,47 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param(
+            "CREATE CATALOG c USING SHARE provider;\n",
+            id="share_without_share_name",
+        ),
+        pytest.param(
+            "CREATE CATALOG c RETAIN DROPPED FOR 30;\n",
+            id="retain_dropped_without_unit",
+        ),
+        pytest.param(
+            "CREATE CATALOG c DEFAULT COLLATION;\n",
+            id="default_collation_without_name",
+        ),
+        pytest.param(
+            "CREATE CATALOG c OPTIONS ();\n",
+            id="empty_options",
+        ),
+        pytest.param(
+            "CREATE CATALOG c OPTIONS (k =);\n",
+            id="options_without_value",
+        ),
+        pytest.param(
+            "CREATE FOREIGN CATALOG fc OPTIONS (k = 'v');\n",
+            id="foreign_without_connection",
+        ),
+        pytest.param(
+            "CREATE FOREIGN CATALOG fc USING CONNECTION conn;\n",
+            id="foreign_without_options",
+        ),
+    ],
+)
+def test_create_catalog_requires_bound_clauses(sql: str) -> None:
+    """A clause's required tokens are all required.
+
+    The reference gives the clause list as a bracketed alternation: a share
+    needs both name parts, RETAIN DROPPED takes a number and a unit, a
+    collation needs its name, OPTIONS needs at least one name-value pair, and
+    the foreign form needs both USING CONNECTION and OPTIONS.
+    """
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
