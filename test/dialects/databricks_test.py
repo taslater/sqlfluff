@@ -345,4 +345,9 @@ def test_alter_recipient_provider_rejections(sql: str) -> None:
         pytest.param("ALTER CREDENTIAL c RENAME TO;", id="credential_rename_without_value"),
 def test_alter_connection_location_credential_rejections(sql: str) -> None:
     """ALTER CONNECTION / EXTERNAL LOCATION / CREDENTIAL boundaries."""
+        pytest.param("ALTER MATERIALIZED VIEW v ALTER COLUMN c COMMENT;", id="mv_column_comment_without_value"),
+        pytest.param("ALTER MATERIALIZED VIEW v ADD SCHEDULE;", id="mv_add_schedule_without_clause"),
+        pytest.param("ALTER STREAMING TABLE t SET OWNER TO;", id="streaming_table_owner_without_value"),
+def test_alter_materialized_view_streaming_table_rejections(sql: str) -> None:
+    """ALTER MATERIALIZED VIEW / STREAMING TABLE boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
