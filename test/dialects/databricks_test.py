@@ -339,4 +339,10 @@ def test_alter_share_rejections(sql: str) -> None:
         pytest.param("ALTER PROVIDER p RENAME TO;", id="provider_rename_without_value"),
 def test_alter_recipient_provider_rejections(sql: str) -> None:
     """ALTER RECIPIENT / PROVIDER boundaries."""
+        pytest.param("ALTER CONNECTION c RENAME TO;", id="connection_rename_without_value"),
+        pytest.param("ALTER CONNECTION c OPTIONS ();", id="connection_empty_options"),
+        pytest.param("ALTER EXTERNAL LOCATION l SET URL;", id="location_set_url_without_value"),
+        pytest.param("ALTER CREDENTIAL c RENAME TO;", id="credential_rename_without_value"),
+def test_alter_connection_location_credential_rejections(sql: str) -> None:
+    """ALTER CONNECTION / EXTERNAL LOCATION / CREDENTIAL boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
