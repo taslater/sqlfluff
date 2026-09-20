@@ -12,6 +12,8 @@ RESERVED_KEYWORDS = [
     "INTERSECT",
     "JOIN",
     "LATERAL",
+    "LEFT",
+    "LITE",
     "MINUS",
     "NATURAL",
     "ON",
