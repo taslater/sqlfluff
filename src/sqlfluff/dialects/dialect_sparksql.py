@@ -3173,22 +3173,44 @@ class AliasExpressionSegment(ansi.AliasExpressionSegment):
 
     match_grammar = Sequence(
         Indent,
-        Ref("AsAliasOperatorSegment", optional=True),
         OneOf(
-            # maybe table alias and column aliases
+            # An explicit alias may be any identifier except the words the
+            # reference reserves as table aliases, even when it shares its
+            # name with a following clause (`AS PIVOT`, `AS KEYS`).
             Sequence(
-                Ref("SingleIdentifierGrammar", optional=True),
-                Bracketed(Ref("SingleIdentifierListSegment")),
+                Ref("AsAliasOperatorSegment"),
+                OneOf(
+                    # maybe table alias and column aliases
+                    Sequence(
+                        Ref("SingleIdentifierGrammar", optional=True),
+                        Bracketed(Ref("SingleIdentifierListSegment")),
+                    ),
+                    # just a table alias
+                    Ref("SingleIdentifierGrammar"),
+                    exclude=OneOf(
+                        "LATERAL",
+                        Ref("JoinTypeKeywords"),
+                        "FROM",
+                    ),
+                ),
             ),
-            # just a table alias
-            Ref("SingleIdentifierGrammar"),
-            exclude=OneOf(
-                "LATERAL",
-                Ref("JoinTypeKeywords"),
-                "WINDOW",
-                "PIVOT",
-                "KEYS",
-                "FROM",
+            # An implicit alias must not consume a following clause keyword.
+            OneOf(
+                # maybe table alias and column aliases
+                Sequence(
+                    Ref("SingleIdentifierGrammar", optional=True),
+                    Bracketed(Ref("SingleIdentifierListSegment")),
+                ),
+                # just a table alias
+                Ref("SingleIdentifierGrammar"),
+                exclude=OneOf(
+                    "LATERAL",
+                    Ref("JoinTypeKeywords"),
+                    "WINDOW",
+                    "PIVOT",
+                    "KEYS",
+                    "FROM",
+                ),
             ),
         ),
         Dedent,
