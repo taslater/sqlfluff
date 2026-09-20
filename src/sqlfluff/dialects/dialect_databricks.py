@@ -1630,6 +1630,85 @@ class OptimizeTableStatementSegment(BaseSegment):
     )
 
 
+class CopyIntoTableStatementSegment(BaseSegment):
+    """A `COPY INTO` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/delta-copy-into
+    """
+
+    type = "copy_into_table_statement"
+
+    # `( { option_name = option_value } [, ...] )`. Both sides are required,
+    # which is what rejects an empty list or a key with no value.
+    _options = Bracketed(
+        Delimited(
+            Sequence(
+                Ref("SingleIdentifierGrammar"),
+                Ref("EqualsSegment"),
+                Ref("QuotedLiteralSegment"),
+            )
+        )
+    )
+
+    # source [ WITH ( [ CREDENTIAL { credential_name |
+    #                             (temporary_credential_options) } ]
+    #               [ ENCRYPTION (encryption_options) ] ) ]
+    _source_clause = Sequence(
+        OneOf(Ref("QuotedLiteralSegment"), Ref("FileReferenceSegment")),
+        Sequence(
+            "WITH",
+            Bracketed(
+                Sequence(
+                    "CREDENTIAL",
+                    OneOf(Ref("ObjectReferenceSegment"), _options),
+                    optional=True,
+                ),
+                Sequence("ENCRYPTION", _options, optional=True),
+            ),
+            optional=True,
+        ),
+    )
+
+    match_grammar = Sequence(
+        "COPY",
+        "INTO",
+        Ref("TableReferenceSegment"),
+        OneOf(
+            Sequence("BY", "POSITION"),
+            Bracketed(Delimited(Ref("ColumnReferenceSegment"))),
+            optional=True,
+        ),
+        "FROM",
+        OneOf(
+            _source_clause,
+            Bracketed(Ref("SelectStatementSegment")),
+        ),
+        "FILEFORMAT",
+        Ref("EqualsSegment"),
+        Ref("DataSourceFormatSegment"),
+        Sequence(
+            "VALIDATE",
+            OneOf("ALL", Sequence(Ref("NumericLiteralSegment"), "ROWS")),
+            optional=True,
+        ),
+        OneOf(
+            Sequence(
+                "FILES",
+                Ref("EqualsSegment"),
+                Bracketed(Delimited(Ref("QuotedLiteralSegment"))),
+            ),
+            Sequence(
+                "PATTERN",
+                Ref("EqualsSegment"),
+                Ref("QuotedLiteralSegment"),
+            ),
+            optional=True,
+        ),
+        Sequence("FORMAT_OPTIONS", _options, optional=True),
+        Sequence("COPY_OPTIONS", _options, optional=True),
+    )
+
+
 class LimitClauseSegment(sparksql.LimitClauseSegment):
     """A `LIMIT` clause like in `SELECT`.
 
@@ -1692,6 +1771,7 @@ class StatementSegment(sparksql.StatementSegment):
             Ref("CreateDatabaseStatementSegment"),
             Ref("SetTimeZoneStatementSegment"),
             Ref("OptimizeTableStatementSegment"),
+            Ref("CopyIntoTableStatementSegment"),
             Ref("CreateDatabricksFunctionStatementSegment"),
             Ref("CreateTableCloneStatementSegment"),
             Ref("FunctionParameterListGrammarWithComments"),

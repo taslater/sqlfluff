@@ -59,3 +59,73 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param(
+            "COPY INTO t () FROM 'p' FILEFORMAT = CSV;",
+            id="empty_column_list",
+        ),
+        pytest.param(
+            "COPY INTO t (a, ) FROM 'p' FILEFORMAT = CSV;",
+            id="column_list_trailing_comma",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT = CSV VALIDATE 10;",
+            id="validate_without_unit",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT = CSV VALIDATE ROWS;",
+            id="validate_without_number",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT = CSV FILES = ();",
+            id="empty_files",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT = CSV FILES = ('a.csv', );",
+            id="file_list_trailing_comma",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT = CSV FORMAT_OPTIONS ();",
+            id="empty_format_options",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT = CSV FORMAT_OPTIONS (header =);",
+            id="format_option_without_value",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT = CSV COPY_OPTIONS ();",
+            id="empty_copy_options",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT = CSV COPY_OPTIONS (force =);",
+            id="copy_option_without_value",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT =;",
+            id="fileformat_without_source",
+        ),
+        pytest.param(
+            "COPY INTO t FROM FILEFORMAT = CSV;",
+            id="from_without_source",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' WITH (CREDENTIAL) FILEFORMAT = CSV;",
+            id="credential_without_name",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' WITH (ENCRYPTION ()) FILEFORMAT = CSV;",
+            id="empty_encryption",
+        ),
+        pytest.param(
+            "COPY INTO t FROM 'p' FILEFORMAT = CSV FILES = ('a.csv') PATTERN = '*.csv';",
+            id="files_and_pattern",
+        ),
+    ],
+)
+def test_copy_into_rejections(sql: str) -> None:
+    """COPY INTO clause boundaries that a valid-parse fixture cannot express."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
