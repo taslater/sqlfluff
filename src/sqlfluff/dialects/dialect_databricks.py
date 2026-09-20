@@ -353,6 +353,14 @@ databricks_dialect.add(
             optional=True,
         ),
     ),
+    # Clause shared across the Unity Catalog DDL statements: CREATE CATALOG,
+    # CREATE SCHEMA, CREATE TABLE, ALTER TABLE and CREATE FUNCTION all take a
+    # default collation.
+    DefaultCollationClauseGrammar=Sequence(
+        "DEFAULT",
+        "COLLATION",
+        Ref("SingleIdentifierGrammar"),
+    ),
     NotebookStart=TypedParser("notebook_start", CommentSegment, type="notebook_start"),
     MagicSingleLineGrammar=TypedParser(
         "magic_single_line", CodeSegment, type="magic_single_line"
@@ -1354,41 +1362,45 @@ class AlterTableStatementSegment(sparksql.AlterTableStatementSegment):
             Sequence(
                 OneOf("ALTER", "CHANGE"),
                 Ref.keyword("COLUMN", optional=True),
-                Ref("ColumnReferenceSegment"),
-                OneOf(
-                    Ref("CommentGrammar"),
-                    Ref("FirstOrAfterGrammar"),
+                Delimited(
                     Sequence(
-                        OneOf("SET", "DROP"),
-                        "NOT",
-                        "NULL",
+                        Ref("ColumnReferenceSegment"),
+                        OneOf(
+                            Ref("CommentGrammar"),
+                            Ref("FirstOrAfterGrammar"),
+                            Sequence(
+                                OneOf("SET", "DROP"),
+                                "NOT",
+                                "NULL",
+                            ),
+                            Sequence(
+                                "TYPE",
+                                Ref("DatatypeSegment"),
+                            ),
+                            Sequence(
+                                "SET",
+                                Ref("ColumnDefaultGrammar"),
+                            ),
+                            Sequence(
+                                "DROP",
+                                "DEFAULT",
+                            ),
+                            Sequence(
+                                "SYNC",
+                                "IDENTITY",
+                            ),
+                            Sequence(
+                                "SET",
+                                Ref("MaskStatementSegment"),
+                            ),
+                            Sequence(
+                                "DROP",
+                                "MASK",
+                            ),
+                            Ref("SetTagsGrammar"),
+                            Ref("UnsetTagsGrammar"),
+                        ),
                     ),
-                    Sequence(
-                        "TYPE",
-                        Ref("DatatypeSegment"),
-                    ),
-                    Sequence(
-                        "SET",
-                        Ref("ColumnDefaultGrammar"),
-                    ),
-                    Sequence(
-                        "DROP",
-                        "DEFAULT",
-                    ),
-                    Sequence(
-                        "SYNC",
-                        "IDENTITY",
-                    ),
-                    Sequence(
-                        "SET",
-                        Ref("MaskStatementSegment"),
-                    ),
-                    Sequence(
-                        "DROP",
-                        "MASK",
-                    ),
-                    Ref("SetTagsGrammar"),
-                    Ref("UnsetTagsGrammar"),
                 ),
             ),
             Sequence(
@@ -1495,6 +1507,39 @@ class AlterTableStatementSegment(sparksql.AlterTableStatementSegment):
                     optional=True,
                 ),
                 Ref("UnsetTagsGrammar"),
+            ),
+            Ref("DefaultCollationClauseGrammar"),
+            Sequence(
+                "SET",
+                "EXTERNAL",
+                Sequence("DRY", "RUN", optional=True),
+            ),
+            Sequence(
+                "SET",
+                "MANAGED",
+                OneOf(
+                    Sequence("TRUNCATE", "UNIFORM", "HISTORY"),
+                    "MOVE",
+                    "COPY",
+                    optional=True,
+                ),
+            ),
+            Sequence(
+                "UNSET",
+                "MANAGED",
+                Sequence("TRUNCATE", "UNIFORM", "HISTORY", optional=True),
+            ),
+            Sequence(
+                "REPLACE",
+                "PARTITIONED",
+                "BY",
+                "WITH",
+                "CLUSTER",
+                "BY",
+                OneOf(
+                    "AUTO",
+                    Bracketed(Delimited(Ref("ColumnReferenceSegment"))),
+                ),
             ),
             Ref("TableClusterByClauseSegment"),
             Ref("PredictiveOptimizationGrammar"),

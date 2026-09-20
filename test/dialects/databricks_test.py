@@ -59,3 +59,21 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param(
+            "ALTER TABLE RENAME TO t2;",
+            id="no_table_name",
+        ),
+        pytest.param(
+            "ALTER TABLE t REPLACE PARTITIONED BY WITH;",
+            id="replace_partitioned_without_cluster_by",
+        ),
+    ],
+)
+def test_alter_table_rejections(sql: str) -> None:
+    """ALTER TABLE boundaries that a valid-parse fixture cannot express."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
