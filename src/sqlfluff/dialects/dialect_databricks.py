@@ -353,6 +353,21 @@ databricks_dialect.add(
             optional=True,
         ),
     ),
+    # Clauses shared across the Unity Catalog DDL statements: CREATE CATALOG,
+    # CREATE SCHEMA and ALTER TABLE all take a default collation, and the
+    # catalog/schema statements take a dropped-file retention window.
+    DefaultCollationClauseGrammar=Sequence(
+        "DEFAULT",
+        "COLLATION",
+        Ref("SingleIdentifierGrammar"),
+    ),
+    RetainDroppedClauseGrammar=Sequence(
+        "RETAIN",
+        "DROPPED",
+        "FOR",
+        Ref("NumericLiteralSegment"),
+        OneOf("HOUR", "HOURS", "DAY", "DAYS", "WEEK", "WEEKS"),
+    ),
     NotebookStart=TypedParser("notebook_start", CommentSegment, type="notebook_start"),
     MagicSingleLineGrammar=TypedParser(
         "magic_single_line", CodeSegment, type="magic_single_line"
@@ -894,19 +909,26 @@ class CreateDatabaseStatementSegment(sparksql.CreateDatabaseStatementSegment):
     https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-ddl-create-schema.html
     """
 
-    match_grammar = sparksql.CreateDatabaseStatementSegment.match_grammar.copy(
-        insert=[
+    # The reference brackets each clause and follows the list with `[...]`, so
+    # the clauses may repeat and appear in any order. `LOCATION` and `MANAGED
+    # LOCATION` are one alternative; DEFAULT COLLATION and RETAIN DROPPED are
+    # shared with the other Unity Catalog DDL statements.
+    match_grammar = Sequence(
+        "CREATE",
+        OneOf("DATABASE", "SCHEMA"),
+        Ref("IfNotExistsGrammar", optional=True),
+        Ref("DatabaseReferenceSegment"),
+        AnyNumberOf(
+            Ref("CommentGrammar"),
+            Ref("DefaultCollationClauseGrammar"),
             Sequence(
                 Ref.keyword("MANAGED", optional=True),
                 "LOCATION",
                 Ref("QuotedLiteralSegment"),
-                optional=True,
             ),
-        ],
-        at=5,
-        remove=[
-            Ref("LocationGrammar", optional=True),
-        ],
+            Ref("RetainDroppedClauseGrammar"),
+            Sequence("WITH", "DBPROPERTIES", Ref("BracketedPropertyListGrammar")),
+        ),
     )
 
 
