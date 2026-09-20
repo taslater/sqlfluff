@@ -2258,7 +2258,13 @@ class SetOperatorSegment(ansi.SetOperatorSegment):
             OneOf("UNION", "INTERSECT"),
             OneOf("DISTINCT", "ALL", optional=True),
         ),
-        exclude=Sequence("EXCEPT", Bracketed(Anything())),
+        # Do not take the EXCEPT of a wildcard exclusion
+        # (`SELECT * EXCEPT (col)`) for a set operator. The exclusion's
+        # bracketed column list is the only ambiguous shape; a parenthesised
+        # subquery is a set operand.
+        exclude=Sequence(
+            "EXCEPT", Bracketed(Delimited(Ref("ColumnReferenceSegment")))
+        ),
     )
 
 
