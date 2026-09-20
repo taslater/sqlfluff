@@ -1675,6 +1675,26 @@ class MergeInsertClauseSegment(sparksql.MergeInsertClauseSegment):
     )
 
 
+class AlterGroupStatementSegment(BaseSegment):
+    """An `ALTER GROUP` statement.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/security-alter-group
+    """
+
+    type = "alter_group_statement"
+
+    match_grammar = Sequence(
+        "ALTER",
+        "GROUP",
+        Ref("SingleIdentifierGrammar"),
+        OneOf("ADD", "DROP"),
+        OneOf(
+            Sequence("GROUP", Delimited(Ref("ObjectReferenceSegment"))),
+            Sequence("USER", Delimited(Ref("ObjectReferenceSegment"))),
+        ),
+    )
+
+
 class StatementSegment(sparksql.StatementSegment):
     """Overriding StatementSegment to allow for additional segment parsing."""
 
@@ -1684,6 +1704,7 @@ class StatementSegment(sparksql.StatementSegment):
             # Unity Catalog
             Ref("AlterCatalogStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
+            Ref("AlterGroupStatementSegment"),
             Ref("DropCatalogStatementSegment"),
             Ref("UseCatalogStatementSegment"),
             Ref("AlterVolumeStatementSegment"),

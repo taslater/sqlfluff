@@ -59,3 +59,15 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 def test_private_requires_streaming_table(sql: str) -> None:
     """PRIVATE is only valid on a streaming table, not on a table."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        pytest.param("ALTER GROUP ADD GROUP h;", id="group_without_principal"),
+        pytest.param("ALTER GROUP g ADD;", id="group_add_without_members"),
+    ],
+)
+def test_alter_group_rejections(sql: str) -> None:
+    """ALTER GROUP boundaries."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
