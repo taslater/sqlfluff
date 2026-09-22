@@ -315,23 +315,32 @@ class Linter:
             linter_logger.info("\n" + parsed.stringify())
         # We may succeed parsing, but still have unparsable segments. Extract them
         # here.
+        anchor_furthest = config.get("furthest_failure_anchor")
         for unparsable in parsed.iter_unparsables():
             # No exception has been raised explicitly, but we still create one here
             # so that we can use the common interface
             assert unparsable.pos_marker
+            # Optionally anchor the violation at the point the parser actually
+            # got to, rather than at the start of the unparsable section.
+            _anchor: BaseSegment = unparsable
+            if anchor_furthest:
+                _failure_segment = unparsable.failure_segment
+                if _failure_segment is not None and _failure_segment.pos_marker:
+                    _anchor = _failure_segment
+            assert _anchor.pos_marker
             _raw = unparsable.raw
             if len(_raw) > 80:
                 _raw = _raw[:80] + "..."
             _description = (
                 "Line {0[0]}, Position {0[1]}: Found unparsable section: {1!r}".format(
-                    unparsable.pos_marker.working_loc, _raw
+                    _anchor.pos_marker.working_loc, _raw
                 )
             )
             if unparsable._expected:
                 _description += ". Expected: {0}".format(
                     curtail_string(unparsable._expected, 80)
                 )
-            violations.append(SQLParseError(_description, segment=unparsable))
+            violations.append(SQLParseError(_description, segment=_anchor))
             if linter_logger.isEnabledFor(logging.INFO):
                 linter_logger.info("Found unparsable segment...")
                 linter_logger.info(unparsable.stringify())

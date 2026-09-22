@@ -32,7 +32,7 @@ When running ``sqlfluff lint`` or ``sqlfluff parse`` we get the following
 error message::
 
     ==== parsing violations ====
-    L:   1 | P:  10 |  PRS | Line 1, Position 10: Found unparsable section: '2 3'. Expected: Nothing here.
+    L:   1 | P:  10 |  PRS | Line 1, Position 10: Found unparsable section: '2 3'. Expected: Nothing here. Found <LiteralSegment: ([L:  1, P: 10]) '2'>
 
 Furthermore if we look at the full parsing output we can see an unparsable
 section in the parse tree:
