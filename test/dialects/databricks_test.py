@@ -42,6 +42,32 @@ def test_materialized_view_constraints_reject_invalid_order(sql: str) -> None:
 @pytest.mark.parametrize(
     "sql",
     [
+        pytest.param(
+            "CREATE MATERIALIZED VIEW v REFRESH POLICY AS SELECT 1;",
+            id="refresh_policy_without_a_policy",
+        ),
+        pytest.param(
+            "CREATE MATERIALIZED VIEW v REFRESH POLICY INCREMENTAL FULL AS SELECT 1;",
+            id="refresh_policy_with_two_policies",
+        ),
+        pytest.param(
+            "CREATE MATERIALIZED VIEW v USING PARQUET AS SELECT 1;",
+            id="using_a_non_view_provider",
+        ),
+        pytest.param(
+            "CREATE MATERIALIZED VIEW v LOCATION AS SELECT 1;",
+            id="location_without_a_path",
+        ),
+    ],
+)
+def test_materialized_view_view_clauses_reject_bad_values(sql: str) -> None:
+    """REFRESH POLICY, USING and LOCATION bind their documented tokens."""
+    assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
         pytest.param("SELECT * FROM t AS left;", id="left_table_alias"),
         pytest.param("SELECT * FROM t AS right;", id="right_table_alias"),
     ],

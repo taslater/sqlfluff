@@ -158,3 +158,47 @@ SELECT
     col2,
     col3
 FROM source_table;
+
+-- REFRESH POLICY (Databricks Runtime 17.3+)
+-- https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-materialized-view-refresh-policy
+CREATE MATERIALIZED VIEW IF NOT EXISTS incremental_mv
+REFRESH POLICY INCREMENTAL
+AS SELECT a, sum(b) FROM catalog.schema.my_table GROUP BY a;
+
+CREATE OR REFRESH MATERIALIZED VIEW incremental_strict_mv (id INT)
+REFRESH POLICY INCREMENTAL STRICT
+AS SELECT id FROM source_table;
+
+CREATE MATERIALIZED VIEW auto_policy_mv
+REFRESH POLICY AUTO
+AS SELECT 1 AS a;
+
+CREATE MATERIALIZED VIEW full_policy_mv
+REFRESH POLICY FULL
+AS SELECT 1 AS a;
+
+-- USING: a view accepts only the DELTA and ICEBERG providers.
+CREATE MATERIALIZED VIEW delta_mv
+USING DELTA
+AS SELECT 1 AS a;
+
+CREATE MATERIALIZED VIEW iceberg_mv
+USING ICEBERG
+AS SELECT 1 AS a;
+
+-- LOCATION
+CREATE OR REFRESH MATERIALIZED VIEW located_mv
+LOCATION 's3://bucket/path'
+AS SELECT 1 AS a;
+
+-- Everything documented, together.
+CREATE OR REFRESH MATERIALIZED VIEW all_clauses_mv (id INT)
+USING ICEBERG
+CLUSTER BY AUTO
+LOCATION 's3://bucket/path'
+COMMENT 'all documented view clauses'
+TBLPROPERTIES ('quality' = 'gold')
+REFRESH POLICY INCREMENTAL STRICT
+SCHEDULE EVERY 1 HOUR
+WITH ROW FILTER my_schema.my_filter ON (id)
+AS SELECT id FROM source_table;

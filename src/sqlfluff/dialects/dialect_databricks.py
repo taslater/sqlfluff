@@ -446,6 +446,20 @@ databricks_dialect.add(
             optional=True,
         ),
     ),
+    # The refresh policy of a materialized view, controlling whether refreshes
+    # are incrementalized. INCREMENTAL STRICT must precede INCREMENTAL in the
+    # OneOf so the two-token form is not truncated.
+    # https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-ddl-create-materialized-view-refresh-policy
+    RefreshPolicyGrammar=Sequence(
+        "REFRESH",
+        "POLICY",
+        OneOf(
+            Sequence("INCREMENTAL", "STRICT"),
+            "AUTO",
+            "INCREMENTAL",
+            "FULL",
+        ),
+    ),
     # Clauses shared across the Unity Catalog DDL statements: CREATE CATALOG,
     # CREATE SCHEMA and ALTER TABLE all take a default collation, and the
     # catalog/schema statements take a dropped-file retention window.
@@ -1779,8 +1793,12 @@ class CreateMaterializedViewStatementSegment(BaseSegment):
     )
 
     _view_clauses = AnyNumberOf(
+        # `USING` accepts only the two documented providers for a view, not
+        # the general `DataSourceFormatSegment` a table takes.
+        Sequence("USING", OneOf("ICEBERG", "DELTA")),
         Ref("PartitionSpecGrammar"),
         Ref("TableClusterByClauseSegment"),
+        Ref("LocationWithCredentialGrammar"),
         Ref("CommentGrammar"),
         Sequence(
             "DEFAULT",
@@ -1788,6 +1806,7 @@ class CreateMaterializedViewStatementSegment(BaseSegment):
             Ref("ObjectReferenceSegment"),
         ),
         Ref("TablePropertiesGrammar"),
+        Ref("RefreshPolicyGrammar"),
         _schedule,
         Sequence(
             "WITH",
