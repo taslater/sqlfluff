@@ -333,6 +333,7 @@ def test_create_catalog_requires_bound_clauses(sql: str) -> None:
     """
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
@@ -402,6 +403,7 @@ def test_copy_into_rejections(sql: str) -> None:
     """COPY INTO clause boundaries that a valid-parse fixture cannot express."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
@@ -419,6 +421,7 @@ def test_alter_table_rejections(sql: str) -> None:
     """ALTER TABLE boundaries that a valid-parse fixture cannot express."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
@@ -427,37 +430,82 @@ def test_alter_table_rejections(sql: str) -> None:
         pytest.param("CREATE SHARE s COMMENT;", id="share_without_comment_value"),
         pytest.param("CREATE RECIPIENT USING ID 'x';", id="recipient_without_name"),
         pytest.param("CREATE RECIPIENT r USING ID;", id="recipient_without_sharing_id"),
-        pytest.param("CREATE RECIPIENT r PROPERTIES ();", id="recipient_empty_properties"),
-        pytest.param("CREATE RECIPIENT r PROPERTIES (k =);", id="recipient_without_property_value"),
-        pytest.param("CREATE RECIPIENT r COMMENT;", id="recipient_without_comment_value"),
+        pytest.param(
+            "CREATE RECIPIENT r PROPERTIES ();", id="recipient_empty_properties"
+        ),
+        pytest.param(
+            "CREATE RECIPIENT r PROPERTIES (k =);",
+            id="recipient_without_property_value",
+        ),
+        pytest.param(
+            "CREATE RECIPIENT r COMMENT;", id="recipient_without_comment_value"
+        ),
     ],
 )
 def test_create_share_recipient_rejections(sql: str) -> None:
     """CREATE SHARE / RECIPIENT boundaries a valid-parse fixture cannot express."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
-        pytest.param("CREATE CONNECTION TYPE POSTGRESQL OPTIONS (host 'h');", id="connection_without_name"),
-        pytest.param("CREATE CONNECTION c OPTIONS (host 'h');", id="connection_without_type"),
-        pytest.param("CREATE CONNECTION c TYPE OPTIONS (host 'h');", id="connection_without_type_value"),
-        pytest.param("CREATE CONNECTION c TYPE POSTGRESQL;", id="connection_without_options"),
-        pytest.param("CREATE CONNECTION c TYPE POSTGRESQL OPTIONS ();", id="connection_empty_options"),
-        pytest.param("CREATE CONNECTION c TYPE POSTGRESQL OPTIONS (host);", id="connection_without_option_value"),
-        pytest.param("CREATE CONNECTION c TYPE POSTGRESQL OPTIONS (host 'h', );", id="connection_options_trailing_comma"),
-        pytest.param("CREATE EXTERNAL LOCATION URL 'u' WITH (STORAGE CREDENTIAL c);", id="location_without_name"),
-        pytest.param("CREATE EXTERNAL LOCATION l 'u' WITH (STORAGE CREDENTIAL c);", id="location_without_url_keyword"),
-        pytest.param("CREATE EXTERNAL LOCATION l URL WITH (STORAGE CREDENTIAL c);", id="location_without_url_value"),
+        pytest.param(
+            "CREATE CONNECTION TYPE POSTGRESQL OPTIONS (host 'h');",
+            id="connection_without_name",
+        ),
+        pytest.param(
+            "CREATE CONNECTION c OPTIONS (host 'h');", id="connection_without_type"
+        ),
+        pytest.param(
+            "CREATE CONNECTION c TYPE OPTIONS (host 'h');",
+            id="connection_without_type_value",
+        ),
+        pytest.param(
+            "CREATE CONNECTION c TYPE POSTGRESQL;", id="connection_without_options"
+        ),
+        pytest.param(
+            "CREATE CONNECTION c TYPE POSTGRESQL OPTIONS ();",
+            id="connection_empty_options",
+        ),
+        pytest.param(
+            "CREATE CONNECTION c TYPE POSTGRESQL OPTIONS (host);",
+            id="connection_without_option_value",
+        ),
+        pytest.param(
+            "CREATE CONNECTION c TYPE POSTGRESQL OPTIONS (host 'h', );",
+            id="connection_options_trailing_comma",
+        ),
+        pytest.param(
+            "CREATE EXTERNAL LOCATION URL 'u' WITH (STORAGE CREDENTIAL c);",
+            id="location_without_name",
+        ),
+        pytest.param(
+            "CREATE EXTERNAL LOCATION l 'u' WITH (STORAGE CREDENTIAL c);",
+            id="location_without_url_keyword",
+        ),
+        pytest.param(
+            "CREATE EXTERNAL LOCATION l URL WITH (STORAGE CREDENTIAL c);",
+            id="location_without_url_value",
+        ),
         pytest.param("CREATE EXTERNAL LOCATION l URL 'u';", id="location_without_with"),
-        pytest.param("CREATE EXTERNAL LOCATION l URL 'u' WITH ();", id="location_empty_with"),
-        pytest.param("CREATE EXTERNAL LOCATION l URL 'u' WITH (STORAGE CREDENTIAL);", id="location_without_credential_name"),
-        pytest.param("CREATE EXTERNAL LOCATION l URL 'u' WITH (STORAGE CREDENTIAL c) COMMENT;", id="location_without_comment_value"),
+        pytest.param(
+            "CREATE EXTERNAL LOCATION l URL 'u' WITH ();", id="location_empty_with"
+        ),
+        pytest.param(
+            "CREATE EXTERNAL LOCATION l URL 'u' WITH (STORAGE CREDENTIAL);",
+            id="location_without_credential_name",
+        ),
+        pytest.param(
+            "CREATE EXTERNAL LOCATION l URL 'u' WITH (STORAGE CREDENTIAL c) COMMENT;",
+            id="location_without_comment_value",
+        ),
     ],
 )
 def test_create_connection_location_rejections(sql: str) -> None:
     """CREATE CONNECTION / EXTERNAL LOCATION boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
 
 @pytest.mark.parametrize(
     "sql",
@@ -496,6 +544,7 @@ def test_create_function_characteristic_rejections(sql: str) -> None:
     """CREATE FUNCTION characteristic boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
@@ -513,14 +562,19 @@ def test_create_table_clause_rejections(sql: str) -> None:
     """CREATE TABLE clause boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
         pytest.param("OPTIMIZE;", id="optimize_without_table"),
         pytest.param("OPTIMIZE events WHERE;", id="optimize_where_without_predicate"),
-        pytest.param("OPTIMIZE events FULL WHERE;", id="optimize_full_where_without_predicate"),
+        pytest.param(
+            "OPTIMIZE events FULL WHERE;", id="optimize_full_where_without_predicate"
+        ),
         pytest.param("OPTIMIZE events ZORDER BY ();", id="optimize_empty_zorder_list"),
-        pytest.param("OPTIMIZE events ZORDER BY (a, );", id="optimize_zorder_trailing_comma"),
+        pytest.param(
+            "OPTIMIZE events ZORDER BY (a, );", id="optimize_zorder_trailing_comma"
+        ),
         pytest.param("VACUUM;", id="vacuum_without_table"),
         pytest.param("VACUUM t FULL LITE;", id="vacuum_full_and_lite"),
         pytest.param("VACUUM t DRY RUN FULL;", id="vacuum_dry_run_and_full"),
@@ -529,6 +583,7 @@ def test_create_table_clause_rejections(sql: str) -> None:
 def test_maintenance_full_mode_rejections(sql: str) -> None:
     """OPTIMIZE / VACUUM clause boundaries and exclusive FULL/LITE modes."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
 
 @pytest.mark.parametrize(
     "sql",
@@ -543,20 +598,34 @@ def test_merge_schema_evolution_rejections(sql: str) -> None:
     """WITH SCHEMA EVOLUTION is only valid before INTO."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
-        pytest.param("ALTER CATALOG c DEFAULT COLLATION;", id="catalog_collation_without_value"),
+        pytest.param(
+            "ALTER CATALOG c DEFAULT COLLATION;", id="catalog_collation_without_value"
+        ),
         pytest.param("ALTER CATALOG c SET TAGS ();", id="catalog_empty_tags"),
-        pytest.param("ALTER CATALOG c SET MANAGED LOCATION;", id="catalog_managed_location_without_path"),
-        pytest.param("ALTER CATALOG c RETAIN DROPPED TO 1;", id="catalog_retain_dropped_without_unit"),
-        pytest.param("ALTER SCHEMA s SET DBPROPERTIES ();", id="schema_empty_dbproperties"),
-        pytest.param("ALTER SCHEMA s DEFAULT COLLATION;", id="schema_collation_without_value"),
+        pytest.param(
+            "ALTER CATALOG c SET MANAGED LOCATION;",
+            id="catalog_managed_location_without_path",
+        ),
+        pytest.param(
+            "ALTER CATALOG c RETAIN DROPPED TO 1;",
+            id="catalog_retain_dropped_without_unit",
+        ),
+        pytest.param(
+            "ALTER SCHEMA s SET DBPROPERTIES ();", id="schema_empty_dbproperties"
+        ),
+        pytest.param(
+            "ALTER SCHEMA s DEFAULT COLLATION;", id="schema_collation_without_value"
+        ),
     ],
 )
 def test_alter_catalog_schema_rejections(sql: str) -> None:
     """ALTER CATALOG / SCHEMA clause boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
 
 @pytest.mark.parametrize(
     "sql",
@@ -564,18 +633,30 @@ def test_alter_catalog_schema_rejections(sql: str) -> None:
         pytest.param("CREATE SCHEMA IF NOT s;", id="if_not_without_exists"),
         pytest.param("CREATE SCHEMA IF EXISTS s;", id="if_exists_without_not"),
         pytest.param("CREATE SCHEMA s COMMENT;", id="comment_without_text"),
-        pytest.param("CREATE SCHEMA s DEFAULT COLLATION;", id="default_collation_without_name"),
+        pytest.param(
+            "CREATE SCHEMA s DEFAULT COLLATION;", id="default_collation_without_name"
+        ),
         pytest.param("CREATE SCHEMA s LOCATION;", id="location_without_path"),
-        pytest.param("CREATE SCHEMA s MANAGED LOCATION;", id="managed_location_without_path"),
-        pytest.param("CREATE SCHEMA s RETAIN DROPPED FOR 14;", id="retain_dropped_without_unit"),
-        pytest.param("CREATE SCHEMA s RETAIN DROPPED FOR DAYS;", id="retain_dropped_without_number"),
+        pytest.param(
+            "CREATE SCHEMA s MANAGED LOCATION;", id="managed_location_without_path"
+        ),
+        pytest.param(
+            "CREATE SCHEMA s RETAIN DROPPED FOR 14;", id="retain_dropped_without_unit"
+        ),
+        pytest.param(
+            "CREATE SCHEMA s RETAIN DROPPED FOR DAYS;",
+            id="retain_dropped_without_number",
+        ),
         pytest.param("CREATE SCHEMA s WITH DBPROPERTIES ();", id="empty_dbproperties"),
-        pytest.param("CREATE SCHEMA s WITH DBPROPERTIES (k =);", id="dbproperties_without_value"),
+        pytest.param(
+            "CREATE SCHEMA s WITH DBPROPERTIES (k =);", id="dbproperties_without_value"
+        ),
     ],
 )
 def test_create_schema_rejections(sql: str) -> None:
     """CREATE SCHEMA clause boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
 
 @pytest.mark.parametrize(
     "sql",
@@ -589,11 +670,17 @@ def test_alter_share_rejections(sql: str) -> None:
     """ALTER SHARE clause boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
-        pytest.param("ALTER RECIPIENT r SET PROPERTIES ();", id="recipient_empty_properties"),
-        pytest.param("ALTER RECIPIENT r UNSET PROPERTIES ();", id="recipient_empty_unset_properties"),
+        pytest.param(
+            "ALTER RECIPIENT r SET PROPERTIES ();", id="recipient_empty_properties"
+        ),
+        pytest.param(
+            "ALTER RECIPIENT r UNSET PROPERTIES ();",
+            id="recipient_empty_unset_properties",
+        ),
         pytest.param("ALTER PROVIDER p RENAME TO;", id="provider_rename_without_value"),
     ],
 )
@@ -601,30 +688,48 @@ def test_alter_recipient_provider_rejections(sql: str) -> None:
     """ALTER RECIPIENT / PROVIDER boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
-        pytest.param("ALTER CONNECTION c RENAME TO;", id="connection_rename_without_value"),
+        pytest.param(
+            "ALTER CONNECTION c RENAME TO;", id="connection_rename_without_value"
+        ),
         pytest.param("ALTER CONNECTION c OPTIONS ();", id="connection_empty_options"),
-        pytest.param("ALTER EXTERNAL LOCATION l SET URL;", id="location_set_url_without_value"),
-        pytest.param("ALTER CREDENTIAL c RENAME TO;", id="credential_rename_without_value"),
+        pytest.param(
+            "ALTER EXTERNAL LOCATION l SET URL;", id="location_set_url_without_value"
+        ),
+        pytest.param(
+            "ALTER CREDENTIAL c RENAME TO;", id="credential_rename_without_value"
+        ),
     ],
 )
 def test_alter_connection_location_credential_rejections(sql: str) -> None:
     """ALTER CONNECTION / EXTERNAL LOCATION / CREDENTIAL boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
 
+
 @pytest.mark.parametrize(
     "sql",
     [
-        pytest.param("ALTER MATERIALIZED VIEW v ALTER COLUMN c COMMENT;", id="mv_column_comment_without_value"),
-        pytest.param("ALTER MATERIALIZED VIEW v ADD SCHEDULE;", id="mv_add_schedule_without_clause"),
-        pytest.param("ALTER STREAMING TABLE t SET OWNER TO;", id="streaming_table_owner_without_value"),
+        pytest.param(
+            "ALTER MATERIALIZED VIEW v ALTER COLUMN c COMMENT;",
+            id="mv_column_comment_without_value",
+        ),
+        pytest.param(
+            "ALTER MATERIALIZED VIEW v ADD SCHEDULE;",
+            id="mv_add_schedule_without_clause",
+        ),
+        pytest.param(
+            "ALTER STREAMING TABLE t SET OWNER TO;",
+            id="streaming_table_owner_without_value",
+        ),
     ],
 )
 def test_alter_materialized_view_streaming_table_rejections(sql: str) -> None:
     """ALTER MATERIALIZED VIEW / STREAMING TABLE boundaries."""
     assert _violations(sql), f"Expected violations but got none for:\n{sql}"
+
 
 @pytest.mark.parametrize(
     "sql",
@@ -643,7 +748,10 @@ def test_alter_group_rejections(sql: str) -> None:
     [
         pytest.param("BEGIN ATOMIC END;", id="block_without_body"),
         pytest.param("BEGIN IF 1 < 2 THEN END IF; END", id="if_without_body"),
-        pytest.param("BEGIN WHILE num < 10 SET num = num + 1; END WHILE; END", id="while_without_do"),
+        pytest.param(
+            "BEGIN WHILE num < 10 SET num = num + 1; END WHILE; END",
+            id="while_without_do",
+        ),
         pytest.param("BEGIN LOOP LEAVE; END LOOP; END", id="leave_without_label"),
         pytest.param("BEGIN GET DIAGNOSTICS rc = ; END", id="diagnostics_without_item"),
     ],
@@ -663,7 +771,10 @@ def test_scripting_rejections(sql: str) -> None:
         pytest.param("CACHE SELECT FROM boxes;", id="cache_select_without_column"),
         pytest.param("CACHE SELECT a, FROM boxes;", id="cache_select_trailing_comma"),
         pytest.param("DROP BLOOMFILTER INDEX;", id="bloom_without_table"),
-        pytest.param("DROP BLOOMFILTER INDEX ON TABLE t FOR COLUMNS ();", id="bloom_empty_columns"),
+        pytest.param(
+            "DROP BLOOMFILTER INDEX ON TABLE t FOR COLUMNS ();",
+            id="bloom_empty_columns",
+        ),
         pytest.param("REPAIR TABLE;", id="repair_without_table"),
         pytest.param("REFRESH MATERIALIZED VIEW;", id="refresh_mv_without_table"),
         pytest.param("REFRESH FOREIGN;", id="refresh_foreign_without_type"),
@@ -673,7 +784,9 @@ def test_scripting_rejections(sql: str) -> None:
         pytest.param("LIST;", id="list_without_url"),
         pytest.param("CALL (1);", id="call_without_name"),
         pytest.param("SET RECIPIENT;", id="set_recipient_without_name"),
-        pytest.param("ANALYZE TABLE COMPUTE STORAGE METRICS;", id="analyze_metrics_without_table"),
+        pytest.param(
+            "ANALYZE TABLE COMPUTE STORAGE METRICS;", id="analyze_metrics_without_table"
+        ),
         pytest.param("SET TAG ON TABLE t;", id="set_tag_without_key"),
         pytest.param("UNSET TAG ON TABLE t;", id="unset_tag_without_key"),
     ],
@@ -689,7 +802,9 @@ def test_maintenance_and_utility_rejections(sql: str) -> None:
         pytest.param("DESCRIBE CATALOG;", id="describe_catalog_without_name"),
         pytest.param("DESCRIBE CONNECTION;", id="describe_connection_without_name"),
         pytest.param("DESCRIBE CREDENTIAL;", id="describe_credential_without_name"),
-        pytest.param("DESCRIBE EXTERNAL LOCATION;", id="describe_location_without_name"),
+        pytest.param(
+            "DESCRIBE EXTERNAL LOCATION;", id="describe_location_without_name"
+        ),
         pytest.param("DESCRIBE FUNCTION;", id="describe_function_without_name"),
         pytest.param("DESCRIBE POLICY p;", id="describe_policy_without_target"),
         pytest.param("DESCRIBE PROCEDURE;", id="describe_procedure_without_name"),
@@ -698,15 +813,23 @@ def test_maintenance_and_utility_rejections(sql: str) -> None:
         pytest.param("DESCRIBE SCHEMA;", id="describe_schema_without_name"),
         pytest.param("DESCRIBE SHARE;", id="describe_share_without_name"),
         pytest.param("DESCRIBE VOLUME;", id="describe_volume_without_name"),
-        pytest.param("SHOW SHARES IN PROVIDER;", id="show_shares_in_provider_without_name"),
+        pytest.param(
+            "SHOW SHARES IN PROVIDER;", id="show_shares_in_provider_without_name"
+        ),
         pytest.param("SHOW ALL IN SHARE;", id="show_all_in_share_without_name"),
         pytest.param("SHOW COLUMNS IN;", id="show_columns_without_table"),
-        pytest.param("SHOW GRANTS TO RECIPIENT;", id="show_grants_to_recipient_without_name"),
+        pytest.param(
+            "SHOW GRANTS TO RECIPIENT;", id="show_grants_to_recipient_without_name"
+        ),
         pytest.param("SHOW POLICIES ON;", id="show_policies_without_target"),
         pytest.param("DENY SELECT ON TABLE t;", id="deny_without_principal"),
         pytest.param("DROP GROUP;", id="drop_group_without_name"),
-        pytest.param("GRANT SELECT ON SHARE s TO RECIPIENT;", id="grant_share_without_recipient"),
-        pytest.param("REVOKE SELECT ON SHARE FROM RECIPIENT r;", id="revoke_share_without_share"),
+        pytest.param(
+            "GRANT SELECT ON SHARE s TO RECIPIENT;", id="grant_share_without_recipient"
+        ),
+        pytest.param(
+            "REVOKE SELECT ON SHARE FROM RECIPIENT r;", id="revoke_share_without_share"
+        ),
         pytest.param("GRANT SELECT ON TABLE TO `u`;", id="grant_table_without_name"),
     ],
 )
@@ -738,10 +861,16 @@ def test_drop_uc_rejections(sql: str) -> None:
 @pytest.mark.parametrize(
     "sql",
     [
-        pytest.param("INSERT INTO t REPLACE ON SELECT a FROM s;", id="insert_replace_on_without_expression"),
+        pytest.param(
+            "INSERT INTO t REPLACE ON SELECT a FROM s;",
+            id="insert_replace_on_without_expression",
+        ),
         pytest.param("RESTORE TABLE employee;", id="restore_without_version"),
         pytest.param("RESTORE TABLE employee TO;", id="restore_without_time_travel"),
-        pytest.param("RESTORE TABLE employee TO TIMESTAMP AS OF;", id="restore_timestamp_without_expression"),
+        pytest.param(
+            "RESTORE TABLE employee TO TIMESTAMP AS OF;",
+            id="restore_timestamp_without_expression",
+        ),
         pytest.param("RESTORE TO VERSION AS OF 1;", id="restore_without_table_name"),
     ],
 )
@@ -755,7 +884,9 @@ def test_insert_and_restore_rejections(sql: str) -> None:
     [
         pytest.param("CREATE POLICY p ON CATALOG c;", id="policy_without_body"),
         pytest.param("CREATE PROCEDURE p;", id="procedure_without_body"),
-        pytest.param("CREATE TABLE t FLOW INSERT BY NAME;", id="table_flow_without_query"),
+        pytest.param(
+            "CREATE TABLE t FLOW INSERT BY NAME;", id="table_flow_without_query"
+        ),
     ],
 )
 def test_policy_procedure_table_flow_rejections(sql: str) -> None:
@@ -767,11 +898,22 @@ def test_policy_procedure_table_flow_rejections(sql: str) -> None:
     "sql",
     [
         pytest.param("SELECT * FROM t OFFSET;", id="offset_without_expression"),
-        pytest.param("SELECT * FROM test TABLESAMPLE ();", id="tablesample_without_sample"),
-        pytest.param("SELECT * FROM test TABLESAMPLE (30 PERCENT) REPEATABLE ();", id="repeatable_without_seed"),
-        pytest.param("SELECT * FROM t MATCH_RECOGNIZE (DEFINE a AS TRUE);", id="match_recognize_without_pattern"),
+        pytest.param(
+            "SELECT * FROM test TABLESAMPLE ();", id="tablesample_without_sample"
+        ),
+        pytest.param(
+            "SELECT * FROM test TABLESAMPLE (30 PERCENT) REPEATABLE ();",
+            id="repeatable_without_seed",
+        ),
+        pytest.param(
+            "SELECT * FROM t MATCH_RECOGNIZE (DEFINE a AS TRUE);",
+            id="match_recognize_without_pattern",
+        ),
         pytest.param("SELECT * FROM t WITH();", id="table_options_empty"),
-        pytest.param("WITH RECURSIVE r(n) MAX RECURSION LEVEL AS (VALUES (1)) SELECT * FROM r;", id="cte_recursion_without_level"),
+        pytest.param(
+            "WITH RECURSIVE r(n) MAX RECURSION LEVEL AS (VALUES (1)) SELECT * FROM r;",
+            id="cte_recursion_without_level",
+        ),
     ],
 )
 def test_query_surface_rejections(sql: str) -> None:
@@ -786,7 +928,9 @@ def test_query_surface_rejections(sql: str) -> None:
         pytest.param("SELECT a FROM t GROUP BY ALL, a;", id="group_by_all_and_list"),
         pytest.param("SELECT * FROM t ORDER BY ALL, a;", id="order_by_all_and_list"),
         pytest.param("USE SCHEMA;", id="use_schema_without_name"),
-        pytest.param("CREATE TEMP EXTERNAL TABLE t (a INT);", id="create_table_temp_external"),
+        pytest.param(
+            "CREATE TEMP EXTERNAL TABLE t (a INT);", id="create_table_temp_external"
+        ),
         pytest.param(
             "CREATE OR REPLACE TEMP TABLE IF NOT EXISTS t (a INT);",
             id="create_table_replace_and_if_not_exists",
