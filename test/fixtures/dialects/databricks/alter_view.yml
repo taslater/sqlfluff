@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: b85b9a49d3398df61dc2fd11c83f54c7af9cb301a6c55cc8db87a4328f39642d
+_hash: 45f96d9d9cdf02b7f6d6f2cb66b8ead7bfc2d5933f56b278ed8b580d98e50b9a
 file:
 - statement:
     alter_view_statement:
@@ -27,21 +27,23 @@ file:
     - table_reference:
         identifier_clause_segment:
           keyword: IDENTIFIER
-          bracketed:
-            start_bracket: (
-            expression:
-              quoted_literal: "'tempsc1.v1'"
-            end_bracket: )
+          function_contents:
+            bracketed:
+              start_bracket: (
+              expression:
+                quoted_literal: "'tempsc1.v1'"
+              end_bracket: )
     - keyword: RENAME
     - keyword: TO
     - table_reference:
         identifier_clause_segment:
           keyword: IDENTIFIER
-          bracketed:
-            start_bracket: (
-            expression:
-              quoted_literal: "'tempsc1.v2'"
-            end_bracket: )
+          function_contents:
+            bracketed:
+              start_bracket: (
+              expression:
+                quoted_literal: "'tempsc1.v2'"
+              end_bracket: )
 - statement_terminator: ;
 - statement:
     alter_view_statement:

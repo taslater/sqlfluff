@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: e575ec12187f3b73b566070c7ab3fd06907556ccdaca08af2178f92247c6e5b7
+_hash: 085f16b4674ce7848798c32aaa6483288e5fcbd4f05c97738461f8e555a87e76
 file:
 - statement:
     use_statement:
@@ -39,11 +39,12 @@ file:
       keyword: USE
       identifier_clause_segment:
         keyword: IDENTIFIER
-        bracketed:
-          start_bracket: (
-          expression:
-            quoted_literal: "'database_name'"
-          end_bracket: )
+        function_contents:
+          bracketed:
+            start_bracket: (
+            expression:
+              quoted_literal: "'database_name'"
+            end_bracket: )
 - statement_terminator: ;
 - statement:
     use_database_statement:
@@ -52,11 +53,12 @@ file:
     - database_reference:
         identifier_clause_segment:
           keyword: IDENTIFIER
-          bracketed:
-            start_bracket: (
-            expression:
-              quoted_literal: "'database_name'"
-            end_bracket: )
+          function_contents:
+            bracketed:
+              start_bracket: (
+              expression:
+                quoted_literal: "'database_name'"
+              end_bracket: )
 - statement_terminator: ;
 - statement:
     use_database_statement:
@@ -65,9 +67,10 @@ file:
     - database_reference:
         identifier_clause_segment:
           keyword: IDENTIFIER
-          bracketed:
-            start_bracket: (
-            expression:
-              quoted_literal: "'database_name'"
-            end_bracket: )
+          function_contents:
+            bracketed:
+              start_bracket: (
+              expression:
+                quoted_literal: "'database_name'"
+              end_bracket: )
 - statement_terminator: ;

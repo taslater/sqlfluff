@@ -303,6 +303,11 @@ databricks_dialect.add(
     TryCastOperatorSegment=StringParser(
         "?::", SymbolSegment, type="try_casting_operator"
     ),
+    # The ':' of a `:param_name` named parameter marker. Distinct from the
+    # generic ColonSegment (used e.g. for `{key: value}` object literals,
+    # where a following space is conventional) because this one must touch
+    # the identifier on both sides: `:param`, never `: param`.
+    ParameterColonSegment=StringParser(":", SymbolSegment, type="parameter_colon"),
     # https://docs.databricks.com/en/sql/language-manual/sql-ref-principal.html
     PrincipalIdentifierSegment=OneOf(
         Ref("NakedIdentifierSegment"),
@@ -1037,6 +1042,19 @@ class ShorthandCastSegment(ansi.ShorthandCastSegment):
     )
 
 
+class IdentifierClauseContentsSegment(BaseSegment):
+    """The `(...)` contents of an `IDENTIFIER` clause.
+
+    Typed as `function_contents` so it gets the same touch-spacing against
+    the preceding `IDENTIFIER` keyword as an ordinary function call (see
+    `function_contents` in default_config.cfg) -- `IDENTIFIER(...)` is
+    always written with no space before the bracket.
+    """
+
+    type = "function_contents"
+    match_grammar = Bracketed(Ref("ExpressionSegment"))
+
+
 class IdentifierClauseSegment(BaseSegment):
     """An `IDENTIFIER` clause segment.
 
@@ -1046,7 +1064,7 @@ class IdentifierClauseSegment(BaseSegment):
     type = "identifier_clause_segment"
     match_grammar = Sequence(
         "IDENTIFIER",
-        Bracketed(Ref("ExpressionSegment")),
+        Ref("IdentifierClauseContentsSegment"),
     )
 
 
@@ -5231,7 +5249,7 @@ class ParameterizedSegment(BaseSegment):
     match_grammar = OneOf(
         # Colon-based parameters: :param_name
         Sequence(
-            Ref("ColonSegment"),
+            Ref("ParameterColonSegment"),
             Ref("NakedIdentifierSegment"),
             allow_gaps=False,
         ),

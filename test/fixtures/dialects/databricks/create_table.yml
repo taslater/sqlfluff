@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: 578492b48adabe5338cdb11712c41696c17cfbfbae1fd47b55749e45c1fbbf7a
+_hash: 0ed4d30b67bd0bf1eb4040a294c322bec0558fa8bb0f4448027767731dd6a473
 file:
 - statement:
     create_table_statement:
@@ -648,11 +648,12 @@ file:
     - table_reference:
         identifier_clause_segment:
           keyword: IDENTIFIER
-          bracketed:
-            start_bracket: (
-            expression:
-              quoted_literal: "'student'"
-            end_bracket: )
+          function_contents:
+            bracketed:
+              start_bracket: (
+              expression:
+                quoted_literal: "'student'"
+              end_bracket: )
     - bracketed:
       - start_bracket: (
       - column_definition:

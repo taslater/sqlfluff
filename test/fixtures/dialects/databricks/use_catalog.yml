@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: d0d6759b24d49681df582b1dba043a10107e3fc678e39deae9f9525fe748dcb1
+_hash: ca66d91d7c55236b19b2f99ba063bc3107d418dc940ef60e7477a4b8a9790d5d
 file:
 - statement:
     use_catalog_statement:
@@ -61,12 +61,13 @@ file:
     - catalog_reference:
         identifier_clause_segment:
           keyword: IDENTIFIER
-          bracketed:
-            start_bracket: (
-            expression:
-              column_reference:
-                naked_identifier: mycat
-            end_bracket: )
+          function_contents:
+            bracketed:
+              start_bracket: (
+              expression:
+                column_reference:
+                  naked_identifier: mycat
+              end_bracket: )
 - statement_terminator: ;
 - statement:
     use_statement:

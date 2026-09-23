@@ -37,3 +37,23 @@ test_pass_select_hint:
   configs:
     core:
       dialect: sparksql
+
+test_pass_databricks_identifier_clause:
+  # IDENTIFIER(...) is always written with no space before the bracket, like
+  # any other function call. The bracket used to be a bare `bracketed`
+  # segment rather than `function_contents`, so LT01 wrongly demanded a
+  # space here.
+  pass_str: USE CATALOG IDENTIFIER(:env);
+  configs:
+    core:
+      dialect: databricks
+
+test_pass_databricks_named_parameter_colon:
+  # `:param_name` touches the colon on both sides. The colon used to share
+  # the generic `colon` type (used elsewhere for e.g. `{key: value}` object
+  # literals, where a following space is conventional), so LT01 wrongly
+  # demanded a space after it here.
+  pass_str: SELECT * FROM t WHERE id = :my_id;
+  configs:
+    core:
+      dialect: databricks
