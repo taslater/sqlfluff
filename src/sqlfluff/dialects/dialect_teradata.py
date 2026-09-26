@@ -140,7 +140,9 @@ teradata_dialect.replace(
     # 'x' (UPPERCASE). This behaves like COLLATE in standard SQL, binding to
     # the operand, so it works on either side of a comparison.
     CollateGrammar=Bracketed(Ref("CharCharacterSetGrammar")),
-    FunctionContentsGrammar=ansi_dialect.get_grammar("FunctionContentsGrammar").copy(
+    FunctionContentsPrimaryGrammar=ansi_dialect.get_grammar(
+        "FunctionContentsPrimaryGrammar"
+    ).copy(
         insert=[
             Sequence(
                 Ref("ExpressionSegment"),

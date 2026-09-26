@@ -1,0 +1,170 @@
+# YML test files are auto-generated from SQL files and should not be edited by
+# hand. To help enforce this, the "hash" field in the file must match a hash
+# computed by SQLFluff when running the tests. Please run
+# `python test/generate_parse_fixture_yml.py`  to generate them after adding or
+# altering SQL files.
+_hash: b07b118c0dc8bd45d68a5114b04775af06c0674287a106bc4d7cb0f98f1fc1fa
+file:
+  statement:
+    select_statement:
+      select_clause:
+      - keyword: SELECT
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: substring
+            function_contents:
+              bracketed:
+              - start_bracket: (
+              - expression:
+                  column_reference:
+                    naked_identifier: s
+              - keyword: FROM
+              - expression:
+                  numeric_literal: '2'
+              - keyword: FOR
+              - expression:
+                  numeric_literal: '3'
+              - end_bracket: )
+      - comma: ','
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: substring
+            function_contents:
+              bracketed:
+              - start_bracket: (
+              - expression:
+                  column_reference:
+                    naked_identifier: s
+              - keyword: FROM
+              - expression:
+                  numeric_literal: '2'
+              - end_bracket: )
+      - comma: ','
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: extract
+            function_contents:
+              bracketed:
+                start_bracket: (
+                date_part: YEAR
+                keyword: FROM
+                expression:
+                  column_reference:
+                    naked_identifier: d
+                end_bracket: )
+      - comma: ','
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: trim
+            function_contents:
+              bracketed:
+              - start_bracket: (
+              - keyword: BOTH
+              - expression:
+                  quoted_literal: "' '"
+              - keyword: FROM
+              - expression:
+                  column_reference:
+                    naked_identifier: s
+              - end_bracket: )
+      - comma: ','
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: position
+            function_contents:
+              bracketed:
+              - start_bracket: (
+              - quoted_literal: "'a'"
+              - keyword: IN
+              - quoted_literal: "'ab'"
+              - end_bracket: )
+      - comma: ','
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: count
+            function_contents:
+              bracketed:
+                start_bracket: (
+                star: '*'
+                end_bracket: )
+      - comma: ','
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: count
+            function_contents:
+              bracketed:
+              - start_bracket: (
+              - keyword: DISTINCT
+              - expression:
+                  column_reference:
+                    naked_identifier: a
+              - comma: ','
+              - expression:
+                  column_reference:
+                    naked_identifier: b
+              - end_bracket: )
+      - comma: ','
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: cast
+            function_contents:
+              bracketed:
+                start_bracket: (
+                expression:
+                  column_reference:
+                    naked_identifier: a
+                keyword: AS
+                data_type:
+                  data_type_identifier: INT
+                end_bracket: )
+      - comma: ','
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: first
+            function_contents:
+              bracketed:
+              - start_bracket: (
+              - expression:
+                  column_reference:
+                    naked_identifier: age
+              - keyword: IGNORE
+              - keyword: NULLS
+              - end_bracket: )
+      - comma: ','
+      - select_clause_element:
+          function:
+            function_name:
+              function_name_identifier: string_agg
+            function_contents:
+              bracketed:
+              - start_bracket: (
+              - expression:
+                  column_reference:
+                    naked_identifier: x
+              - comma: ','
+              - expression:
+                  quoted_literal: "','"
+              - aggregate_order_by:
+                  orderby_clause:
+                  - keyword: ORDER
+                  - keyword: BY
+                  - column_reference:
+                      naked_identifier: y
+              - end_bracket: )
+      from_clause:
+        keyword: FROM
+        from_expression:
+          from_expression_element:
+            table_expression:
+              table_reference:
+                naked_identifier: t
+  statement_terminator: ;
