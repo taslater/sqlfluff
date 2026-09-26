@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: dcd4d6cdf4a9460b035a9d350b079ee7f039806e160aa15bfd12554ccce351a4
+_hash: 7675f1723f97bce5fc28f388b05367b75c46a62024c4f1812f42f2e59d21827f
 file:
 - statement:
     create_statement:
@@ -19,16 +19,13 @@ file:
       - dot: .
       - naked_identifier: example_MASKING_POLICY
     - keyword: AS
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: VARCHAR
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: VARCHAR
+          end_bracket: )
     - keyword: RETURNS
     - data_type:
         data_type_identifier: VARCHAR
@@ -73,16 +70,13 @@ file:
     - object_reference:
         naked_identifier: email_mask
     - keyword: as
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: string
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: string
+          end_bracket: )
     - keyword: returns
     - data_type:
         data_type_identifier: string
@@ -125,16 +119,13 @@ file:
     - object_reference:
         naked_identifier: email_mask
     - keyword: as
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: string
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: string
+          end_bracket: )
     - keyword: returns
     - data_type:
         data_type_identifier: string
@@ -177,16 +168,13 @@ file:
     - object_reference:
         naked_identifier: email_mask
     - keyword: as
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: string
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: string
+          end_bracket: )
     - keyword: returns
     - data_type:
         data_type_identifier: string
@@ -229,16 +217,13 @@ file:
     - object_reference:
         naked_identifier: email_mask
     - keyword: as
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: string
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: string
+          end_bracket: )
     - keyword: returns
     - data_type:
         data_type_identifier: string
@@ -281,16 +266,13 @@ file:
     - object_reference:
         naked_identifier: email_mask
     - keyword: as
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: string
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: string
+          end_bracket: )
     - keyword: returns
     - data_type:
         data_type_identifier: string
@@ -342,16 +324,13 @@ file:
     - object_reference:
         naked_identifier: email_mask
     - keyword: as
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: string
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: string
+          end_bracket: )
     - keyword: returns
     - data_type:
         data_type_identifier: string
@@ -427,16 +406,13 @@ file:
     - object_reference:
         naked_identifier: email_mask
     - keyword: as
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: string
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: string
+          end_bracket: )
     - keyword: returns
     - data_type:
         data_type_identifier: string
@@ -497,16 +473,13 @@ file:
     - object_reference:
         naked_identifier: email_mask
     - keyword: as
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: string
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: string
+          end_bracket: )
     - keyword: returns
     - data_type:
         data_type_identifier: string
@@ -558,16 +531,13 @@ file:
     - object_reference:
         naked_identifier: email_mask
     - keyword: as
-    - function_contents:
+    - masking_policy_signature:
         bracketed:
-        - start_bracket: (
-        - expression:
-            column_reference:
-              naked_identifier: val
-        - expression:
-            column_reference:
-              naked_identifier: string
-        - end_bracket: )
+          start_bracket: (
+          parameter: val
+          data_type:
+            data_type_identifier: string
+          end_bracket: )
     - keyword: returns
     - data_type:
         data_type_identifier: string

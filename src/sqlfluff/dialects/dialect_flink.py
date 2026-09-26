@@ -128,6 +128,21 @@ flink_dialect.sets("datetime_units").update(
         "ISODOW",
         "DOY",
         "ISOYEAR",
+        # Flink interval literals spell the unit in the plural, e.g.
+        # `INTERVAL '10' MINUTES`, which its windowing TVFs use. Without
+        # these the unit was previously read as a second, adjacent function
+        # argument by the permissive function-contents grammar.
+        "YEARS",
+        "MONTHS",
+        "DAYS",
+        "HOURS",
+        "MINUTES",
+        "SECONDS",
+        "MILLISECONDS",
+        "MICROSECONDS",
+        "NANOSECONDS",
+        "WEEKS",
+        "QUARTERS",
     ]
 )
 

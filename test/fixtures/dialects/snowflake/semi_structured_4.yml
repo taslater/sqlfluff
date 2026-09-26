@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: afa5e178d25ab8454dea8c33d10b9cffef0003598a5b89391159391a17276ffd
+_hash: 227d2d631ec4a92cbff9c8b696f95c0105de430cce0179adb18b4c89e4ac6c40
 file:
   statement:
     select_statement:
@@ -82,6 +82,7 @@ file:
                   semi_structured_expression:
                     colon: ':'
                     semi_structured_element: EVENT_TIME
+              - comma: ','
               - expression:
                   quoted_literal: "'1970-01-01'"
               - end_bracket: )

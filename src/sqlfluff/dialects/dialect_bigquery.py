@@ -351,13 +351,22 @@ bigquery_dialect.replace(
             Ref("ExpressionSegment"),
             Sequence(OneOf("IGNORE", "RESPECT"), "NULLS", optional=True),
         ),
-        Sequence(Ref("ExpressionSegment"), "HAVING", OneOf("MIN", "MAX")),
+        # ANY_VALUE(expression [HAVING {MAX | MIN} expression])
+        # https://cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions#any_value
+        Sequence(
+            Ref("ExpressionSegment"),
+            "HAVING",
+            OneOf("MIN", "MAX"),
+            Ref("ExpressionSegment"),
+        ),
         Ref("NamedArgumentSegment"),
     ),
-    # Extend the ANSI FunctionContentsGrammar to allow a FORMAT clause
+    # Extend the ANSI FunctionContentsPrimaryGrammar to allow a FORMAT clause
     # after the CAST-style "AS <datatype>" pattern, e.g.:
     #   CAST(x AS STRING FORMAT 'ASCII')
-    FunctionContentsGrammar=ansi_dialect.get_grammar("FunctionContentsGrammar").copy(
+    FunctionContentsPrimaryGrammar=ansi_dialect.get_grammar(
+        "FunctionContentsPrimaryGrammar"
+    ).copy(
         insert=[
             Sequence(
                 Ref("ExpressionSegment"),

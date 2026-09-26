@@ -6620,6 +6620,18 @@ class TaskExpressionSegment(BaseSegment):
     )
 
 
+class MaskingPolicySignatureSegment(BaseSegment):
+    """The parameter signature of a masking or row access policy.
+
+    https://docs.snowflake.com/en/sql-reference/sql/create-masking-policy
+    """
+
+    type = "masking_policy_signature"
+    match_grammar: Matchable = Bracketed(
+        Delimited(Ref("FunctionParameterGrammar"), optional=True)
+    )
+
+
 class CreateStatementSegment(BaseSegment):
     """A snowflake `CREATE` statement.
 
@@ -7075,7 +7087,7 @@ class CreateStatementSegment(BaseSegment):
         OneOf(
             Ref("SelectStatementSegment"),
             Sequence(
-                Ref("FunctionContentsSegment"),
+                Ref("MaskingPolicySignatureSegment"),
                 "RETURNS",
                 Ref("DatatypeSegment"),
                 Ref("FunctionAssignerSegment"),

@@ -1405,39 +1405,51 @@ ansi_dialect.add(
     # FunctionContentsExpressionGrammar intended as a hook to override
     # in other dialects.
     FunctionContentsExpressionGrammar=Ref("ExpressionSegment"),
-    FunctionContentsGrammar=AnyNumberOf(
+    # NOTE: Function contents are one "primary" form followed by trailing
+    # modifiers. The primary form is a `OneOf`, not an `AnyNumberOf`, because
+    # a repeating primary could match two adjacent expressions with no comma
+    # between them. The old `AnyNumberOf` here held a bare
+    # `Ref("ExpressionSegment")` which matched `a`, and the delimited list
+    # matched the next bare expression, so `EXISTS (* FROM u)` parsed as a
+    # function named EXISTS and `foo(SELECT * FROM u, v w.x = u.id)` smuggled
+    # a comparison through as a second argument. Both are invalid in the
+    # standard and rejected by PostgreSQL and SQLite.
+    FunctionContentsPrimaryGrammar=OneOf(
+        # A single expression. This must come first so that on a tie with the
+        # argument list below it wins, which keeps `DISTINCT(x)` parsing as a
+        # function named DISTINCT (rule ST08 relies on that shape).
         Ref("ExpressionSegment"),
-        # A Cast-like function
+        # The positional argument list. `DISTINCT` and the `COUNT(*)`-style
+        # star are part of the list's shape, not separate arguments.
+        Sequence(
+            Ref.keyword("DISTINCT", optional=True),
+            OneOf(
+                Ref("StarSegment"),
+                Delimited(Ref("FunctionContentsExpressionGrammar")),
+            ),
+        ),
+        # A cast-like function.
         Sequence(Ref("ExpressionSegment"), "AS", Ref("DatatypeSegment")),
-        # Trim function
+        # A trim-like function: `TRIM(BOTH ' ' FROM s)`.
         Sequence(
             Ref("TrimParametersGrammar"),
             Ref("ExpressionSegment", optional=True, exclude=Ref.keyword("FROM")),
             "FROM",
             Ref("ExpressionSegment"),
         ),
-        # An extract-like or substring-like function
+        # An extract- or substring-like function: `EXTRACT(YEAR FROM d)`,
+        # `SUBSTRING(s FROM 2 [FOR 3])`.
         Sequence(
             OneOf(Ref("DatetimeUnitSegment"), Ref("ExpressionSegment")),
             "FROM",
             Ref("ExpressionSegment"),
-        ),
-        Sequence(
-            # Allow an optional distinct keyword here.
-            Ref.keyword("DISTINCT", optional=True),
-            OneOf(
-                # Most functions will be using the delimited route
-                # but for COUNT(*) or similar we allow the star segment
-                # here.
-                Ref("StarSegment"),
-                Delimited(Ref("FunctionContentsExpressionGrammar")),
+            Sequence(
+                "FOR",
+                Ref("ExpressionSegment"),
+                optional=True,
             ),
         ),
-        Ref(
-            "AggregateOrderByClause"
-        ),  # used by string_agg (postgres), group_concat (exasol),listagg (snowflake)..
-        Sequence(Ref.keyword("SEPARATOR"), Ref("LiteralGrammar")),
-        # like a function call: POSITION ( 'QL' IN 'SQL')
+        # POSITION ( 'QL' IN 'SQL').
         Sequence(
             OneOf(
                 Ref("QuotedLiteralSegment"),
@@ -1451,9 +1463,25 @@ ansi_dialect.add(
                 Ref("ColumnReferenceSegment"),
             ),
         ),
-        Ref("IgnoreRespectNullsGrammar"),
-        Ref("IndexColumnDefinitionSegment"),
+        # `STRUCT()` as a function argument.
         Ref("EmptyStructLiteralSegment"),
+    ),
+    # Modifiers that follow the primary form. Kept separate so a positional
+    # list can still carry one, e.g. `first(age IGNORE NULLS)` or
+    # `string_agg(x, ',' ORDER BY y)`.
+    FunctionContentsTrailingGrammar=AnyNumberOf(
+        Ref(
+            "AggregateOrderByClause"
+        ),  # used by string_agg (postgres), group_concat (exasol),listagg (snowflake)..
+        Sequence(Ref.keyword("SEPARATOR"), Ref("LiteralGrammar")),
+        Ref("IgnoreRespectNullsGrammar"),
+    ),
+    FunctionContentsGrammar=Sequence(
+        Ref("FunctionContentsPrimaryGrammar"),
+        # NOTE: `optional=True` is needed because a `Ref` to an optional
+        # grammar does not itself report as optional to the enclosing
+        # `Sequence`.
+        Ref("FunctionContentsTrailingGrammar", optional=True),
     ),
     PostFunctionGrammar=OneOf(
         # Optional OVER suffix for window functions.

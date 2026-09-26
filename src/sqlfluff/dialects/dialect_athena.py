@@ -293,7 +293,9 @@ athena_dialect.replace(
             Ref("WithinGroupClauseSegment"),
         ]
     ),
-    FunctionContentsGrammar=ansi_dialect.get_grammar("FunctionContentsGrammar").copy(
+    FunctionContentsPrimaryGrammar=ansi_dialect.get_grammar(
+        "FunctionContentsPrimaryGrammar"
+    ).copy(
         insert=[
             Sequence(
                 Delimited(
@@ -304,9 +306,11 @@ athena_dialect.replace(
                     ),
                 ),
             ),
-            Ref("ListaggOverflowClauseSegment"),
         ]
     ),
+    FunctionContentsTrailingGrammar=ansi_dialect.get_grammar(
+        "FunctionContentsTrailingGrammar"
+    ).copy(insert=[Ref("ListaggOverflowClauseSegment")]),
     AlterTableDropColumnGrammar=Sequence(
         "DROP",
         Ref.keyword("COLUMN"),

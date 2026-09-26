@@ -176,6 +176,25 @@ def test__dialect__ansi_specific_segment_not_parse(raw, err_locations):
     assert locs == err_locations
 
 
+@pytest.mark.parametrize(
+    "raw",
+    [
+        # Function arguments are comma-delimited. Adjacent expressions used
+        # to be read as separate arguments, which let an EXISTS predicate be
+        # swallowed as a function call named EXISTS ...
+        "SELECT a FROM t WHERE EXISTS (* FROM u)",
+        # ... and let a comparison through as a second argument.
+        "SELECT a FROM t WHERE foo(SELECT * FROM u, v w.x = u.id)",
+        # Two bare expressions are not two arguments.
+        "SELECT foo(a b) FROM t",
+    ],
+)
+def test__dialect__ansi_function_arguments_require_commas(raw):
+    """Function arguments must be separated by commas."""
+    parsed = Linter(dialect="ansi").parse_string(raw)
+    assert parsed.violations or list(parsed.tree.recursive_crawl("unparsable"))
+
+
 def test__dialect__ansi_is_whitespace():
     """Test proper tagging with is_whitespace."""
     lnt = Linter(dialect="ansi")

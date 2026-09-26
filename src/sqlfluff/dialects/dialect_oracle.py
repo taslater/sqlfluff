@@ -703,6 +703,21 @@ oracle_dialect.add(
 )
 
 oracle_dialect.replace(
+    # Oracle indexes collections with parentheses, not square brackets:
+    # `collection(i)`, and a function that returns a collection can be
+    # indexed directly, `function_call(...)(i)`.
+    AccessorGrammar=AnyNumberOf(
+        Ref("ArrayAccessorSegment"),
+        Bracketed(
+            Delimited(
+                OneOf(
+                    Ref("NumericLiteralSegment"),
+                    Ref("ExpressionSegment"),
+                ),
+                delimiter=Ref("SliceSegment"),
+            ),
+        ),
+    ),
     ColumnConstraintDefaultGrammar=OneOf(
         ansi_dialect.get_grammar("ColumnConstraintDefaultGrammar"),
         Ref("SequencePseudocolumnGrammar"),
@@ -755,9 +770,12 @@ oracle_dialect.replace(
         Ref("NamedArgumentSegment"),
         Ref.keyword("DEFAULT"),
     ),
-    FunctionContentsGrammar=ansi_dialect.get_grammar("FunctionContentsGrammar").copy(
-        insert=[Ref("ListaggOverflowClauseSegment"), Ref("JSONObjectContentSegment")]
-    ),
+    FunctionContentsPrimaryGrammar=ansi_dialect.get_grammar(
+        "FunctionContentsPrimaryGrammar"
+    ).copy(insert=[Ref("JSONObjectContentSegment")]),
+    FunctionContentsTrailingGrammar=ansi_dialect.get_grammar(
+        "FunctionContentsTrailingGrammar"
+    ).copy(insert=[Ref("ListaggOverflowClauseSegment")]),
     TemporaryGrammar=Sequence(
         OneOf("GLOBAL", "PRIVATE"),
         Ref.keyword("TEMPORARY"),
@@ -878,7 +896,13 @@ oracle_dialect.replace(
                     ),
                     optional=True,
                 ),
-                Ref("DotSegment", optional=True),
+                # A collection element can be indexed and then read as a
+                # record field: `collection(index).field`.
+                Sequence(
+                    Ref("DotSegment"),
+                    Ref("SingleIdentifierGrammar"),
+                    optional=True,
+                ),
             ),
             terminators=[Ref("CommaSegment")],
         ),
