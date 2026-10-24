@@ -23,6 +23,17 @@ RESERVED_KEYWORDS = [
 ]
 
 UNRESERVED_KEYWORDS = [
+    "MATCH_RECOGNIZE",
+    "ONE",
+    "PER",
+    "DEFINE",
+    "MEASURES",
+    "PAST",
+    "RECURSION",
+    "SKIP",
+    "EMPTY",
+    "MATCHES",
+    "PATTERN",
     "AUTO",
     "CATALOG",
     "CDC",
